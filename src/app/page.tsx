@@ -2,8 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import StaggeredMenu from "@/components/shared/StaggeredMenu";
 import { STAGGERED_MENU_ITEMS, STAGGERED_MENU_SOCIALS, STAGGERED_MENU_COLORS } from "@/lib/navigationConfig";
+
+const GradientWaves = dynamic(() => import("@/components/shared/GradientWaves"), {
+  ssr: false,
+});
 import {
   Droplets,
   ArrowRight,
@@ -36,7 +41,27 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"tanker" | "groundwater" | "rwh" | "ai">("tanker");
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary-100 selection:text-primary-700">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary-100 selection:text-primary-700 relative">
+      {/* React Bits GradientWaves — Low-Intensity Ambient Backdrop */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-25">
+        <GradientWaves
+          horizonColor="#071B49"
+          waveColor="#073BCE"
+          crestColor="#20B8C4"
+          backgroundColor="transparent"
+          speed={0.18}
+          amplitude={1.2}
+          waveScale={0.45}
+          waveRatio={0.8}
+          opacity={0.3}
+          relief={0.4}
+          lightAngle={135}
+          grain={0.02}
+          mouseInteraction={true}
+          swellOnClick={false}
+        />
+      </div>
+
       {/* React Bits StaggeredMenu Navigation */}
       <StaggeredMenu
         position="right"
@@ -143,9 +168,26 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Interactive SaaS Product Mockup Preview in Hero */}
-          <div className="mt-12 rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10 lg:mt-16">
-            <div className="rounded-xl border border-slate-100 bg-slate-900 p-4 text-white sm:p-6 space-y-6">
+          {/* Community Field Deployment & Interactive Telemetry Terminal */}
+          <div className="mt-12 space-y-6 lg:mt-16">
+            {/* Real-World Field Deployment Card */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10 transition duration-300 hover:shadow-card-hover">
+              <div className="relative overflow-hidden rounded-xl bg-slate-900">
+                <img
+                  src="/community-water-system-nagpur.jpg"
+                  alt="A Smarter Water System for Homes - Real-World Field Deployment"
+                  className="w-full h-auto object-cover max-h-[500px]"
+                />
+                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 rounded-full border border-white/20 bg-slate-900/80 backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-white shadow-lg">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-World Community Deployment & Resident Empowerment</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive SaaS Product Mockup Preview in Hero */}
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10">
+              <div className="rounded-xl border border-slate-100 bg-slate-900 p-4 text-white sm:p-6 space-y-6">
               {/* Mockup Window Chrome */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
@@ -249,7 +291,8 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* The 5 Mandatory Core Features (Asymmetric SaaS Bento Grid) */}
       <section id="features" className="py-20 bg-white border-y border-slate-200">
