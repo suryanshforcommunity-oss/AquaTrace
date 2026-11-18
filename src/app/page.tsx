@@ -684,41 +684,36 @@ export default function LandingPage() {
       </section>
 
       {/* High-Impact Bottom Call to Action with Faded Community Water Telemetry Background */}
-      <section className="relative overflow-hidden py-24 sm:py-32 bg-[#071B49] text-white">
-        {/* Faded Background Image */}
+      <section className="relative overflow-hidden py-28 sm:py-36 bg-[#071B49] text-white">
+        {/* Background Image Layer - Faded & Clearly Visible */}
         <div className="absolute inset-0 z-0">
           <img
             src="/community-water-intelligence-bg.jpg"
             alt="Community Water Infrastructure Background"
-            className="h-full w-full object-cover object-center opacity-25 filter brightness-90 contrast-110"
+            className="h-full w-full object-cover object-center opacity-55"
           />
-          {/* Multi-layered dark navy gradient overlay to softly fade the image into the background */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#071B49] via-[#071B49]/80 to-[#071B49]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#071B49]/95 via-[#071B49]/60 to-[#071B49]/95" />
+          {/* Subtle dark overlay for optimal text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#071B49]/90 via-[#071B49]/60 to-[#071B49]/90" />
         </div>
 
-        {/* Subtle Ambient Radial Glows */}
-        <div className="pointer-events-none absolute -bottom-40 right-1/4 z-0 h-[400px] w-[600px] rounded-full bg-primary/25 blur-3xl" />
-        <div className="pointer-events-none absolute -top-40 left-1/4 z-0 h-[400px] w-[600px] rounded-full bg-aqua/15 blur-3xl" />
-
         <div className="relative z-10 mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8 space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-aqua/30 bg-aqua/10 px-3.5 py-1 text-xs font-semibold text-aqua backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 rounded-full border border-aqua/40 bg-navy-900/80 px-4 py-1.5 text-xs font-semibold text-aqua shadow-md backdrop-blur-md">
             <span className="h-2 w-2 rounded-full bg-aqua animate-pulse" />
             <span>Community Water Resilience & Telemetry</span>
           </div>
 
-          <h2 className="font-extrabold text-3xl sm:text-5xl tracking-tight text-white drop-shadow-md">
+          <h2 className="font-extrabold text-3xl sm:text-5xl tracking-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
             Deploy Water Intelligence Across Your Residential Community
           </h2>
 
-          <p className="text-base sm:text-lg text-slate-200 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+          <p className="text-base sm:text-lg text-slate-100 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
             Eliminate water anxiety. Know your exact water reserves, track groundwater drawdown, verify tanker arrivals, and coordinate community conservation.
           </p>
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-sm font-bold text-white shadow-xl shadow-primary/30 hover:bg-primary-hover hover:scale-105 transition-all duration-200"
+              className="flex items-center gap-2 rounded-xl bg-primary px-7 py-4 text-sm font-bold text-white shadow-xl shadow-primary/40 hover:bg-primary-hover hover:scale-105 transition-all duration-200"
             >
               <span>Explore Live Dashboard Now</span>
               <ArrowRight className="h-4 w-4" />
@@ -726,7 +721,7 @@ export default function LandingPage() {
 
             <Link
               href="/login"
-              className="flex items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/80 backdrop-blur-md px-6 py-4 text-sm font-semibold text-slate-100 hover:bg-slate-700/80 hover:text-white transition"
+              className="flex items-center gap-2 rounded-xl border border-white/20 bg-navy/90 backdrop-blur-md px-6 py-4 text-sm font-semibold text-white hover:bg-navy-700 hover:border-white/40 transition shadow-lg"
             >
               <span>Switch Demo Persona</span>
             </Link>
