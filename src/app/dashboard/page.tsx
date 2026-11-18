@@ -97,40 +97,56 @@ export default function MainDashboardPage() {
   const [residentLeakLocation, setResidentLeakLocation] = useState("");
   const [residentLeakDescription, setResidentLeakDescription] = useState("");
 
-  // Live KPI calculations — dynamically tied to local backend store
+  // Society-filtered lists
+  const societyBorewells = borewellPoints.filter((b) => b.id.includes(selectedSociety.id)).length > 0
+    ? borewellPoints.filter((b) => b.id.includes(selectedSociety.id))
+    : borewellPoints;
+  const societyTankers = tankerSchedules.filter((t) => t.societyId === selectedSociety.id).length > 0
+    ? tankerSchedules.filter((t) => t.societyId === selectedSociety.id)
+    : tankerSchedules;
+  const societyLeaks = leakageReports.filter((l) => l.societyId === selectedSociety.id).length > 0
+    ? leakageReports.filter((l) => l.societyId === selectedSociety.id)
+    : leakageReports;
+  const societyAlerts = alerts.filter((a) => a.societyId === selectedSociety.id).length > 0
+    ? alerts.filter((a) => a.societyId === selectedSociety.id)
+    : alerts;
+
+  // Live KPI calculations — dynamically tied to local backend store & selected society
   const totalWaterAvailableLiters = currentStorageLiters;
-  const avgDailyConsumption = 34000;
+  const avgDailyConsumption = selectedSociety.dailyWaterQuotaLiters || 432000;
   const storageCapacityPercent = Math.min(
     100,
-    Math.round((totalWaterAvailableLiters / (selectedSociety.usableStorageCapacityLiters || 240000)) * 100)
+    Math.round((totalWaterAvailableLiters / (selectedSociety.usableStorageCapacityLiters || 650000)) * 100)
   );
   const hoursLeft = Math.max(1, Math.round(totalWaterAvailableLiters / (avgDailyConsumption / 24)));
 
   const daysCalc = calculateDaysRemaining({
     usableStoredWaterLiters: totalWaterAvailableLiters,
     averageDailyConsumptionLiters: avgDailyConsumption,
-    scheduledIncomingSupplyLiters: 6000,
+    scheduledIncomingSupplyLiters: 12000,
   });
 
-  const primaryBorewell = borewellPoints.find((b) => b.id === "bw_02") || borewellPoints[0];
-  const nextTanker = tankerSchedules.find((t) => t.status === "en_route" || t.status === "scheduled");
+  const primaryBorewell = societyBorewells.find((b) => b.status === "active") || societyBorewells[0];
+  const nextTanker = societyTankers.find((t) => t.status === "en_route" || t.status === "scheduled");
 
-  const unresolvedLeaks = leakageReports.filter(
+  const unresolvedLeaks = societyLeaks.filter(
     (l) => l.status === "submitted" || l.status === "under_review" || l.status === "in_progress"
   );
 
-  // Chart 1: Water Availability vs Demand (Past 7 Days + 3 Days Forecast)
+  // Chart 1: Water Availability vs Demand (Past 7 Days + 3 Days Forecast) scaled to selected society
+  const quota = selectedSociety.dailyWaterQuotaLiters || 432000;
+  const cap = selectedSociety.usableStorageCapacityLiters || 650000;
   const availabilityChartData = [
-    { date: "11 Nov", available: 135000, consumption: 32000, forecastDemand: 33000 },
-    { date: "12 Nov", available: 140000, consumption: 33500, forecastDemand: 34000 },
-    { date: "13 Nov", available: 138000, consumption: 31000, forecastDemand: 32000 },
-    { date: "14 Nov", available: 145000, consumption: 36000, forecastDemand: 35500 },
-    { date: "15 Nov", available: 141000, consumption: 37500, forecastDemand: 38000 },
-    { date: "16 Nov", available: 139000, consumption: 35000, forecastDemand: 36000 },
-    { date: "17 Nov", available: 142500, consumption: 28400, forecastDemand: 34500 },
-    { date: "18 Nov (Fc)", available: 148000, forecastDemand: 35200 },
-    { date: "19 Nov (Fc)", available: 140000, forecastDemand: 36000 },
-    { date: "20 Nov (Fc)", available: 132000, forecastDemand: 37800 },
+    { date: "11 Nov", available: Math.round(cap * 0.72), consumption: Math.round(quota * 0.94), forecastDemand: Math.round(quota * 0.95) },
+    { date: "12 Nov", available: Math.round(cap * 0.75), consumption: Math.round(quota * 0.96), forecastDemand: Math.round(quota * 0.97) },
+    { date: "13 Nov", available: Math.round(cap * 0.74), consumption: Math.round(quota * 0.92), forecastDemand: Math.round(quota * 0.93) },
+    { date: "14 Nov", available: Math.round(cap * 0.78), consumption: Math.round(quota * 0.98), forecastDemand: Math.round(quota * 0.99) },
+    { date: "15 Nov", available: Math.round(cap * 0.76), consumption: Math.round(quota * 1.04), forecastDemand: Math.round(quota * 1.05) },
+    { date: "16 Nov", available: Math.round(cap * 0.77), consumption: Math.round(quota * 0.99), forecastDemand: Math.round(quota * 1.01) },
+    { date: "17 Nov", available: totalWaterAvailableLiters, consumption: Math.round(quota * 0.95), forecastDemand: Math.round(quota * 0.98) },
+    { date: "18 Nov (Fc)", available: Math.round(cap * 0.80), forecastDemand: Math.round(quota * 1.02) },
+    { date: "19 Nov (Fc)", available: Math.round(cap * 0.76), forecastDemand: Math.round(quota * 1.06) },
+    { date: "20 Nov (Fc)", available: Math.round(cap * 0.73), forecastDemand: Math.round(quota * 1.10) },
   ];
 
   // Chart 2: Inverted Groundwater Hydrograph (m below reference datum)
@@ -414,7 +430,7 @@ export default function MainDashboardPage() {
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Tankers ({tankerSchedules.length})
+            Tankers ({societyTankers.length})
           </button>
         </div>
       )}
@@ -612,7 +628,7 @@ export default function MainDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {leakageReports.slice(0, 3).map((leak) => {
+              {societyLeaks.slice(0, 3).map((leak) => {
                 const statusStyle = getStatusColor(leak.status);
                 return (
                   <div
@@ -1075,7 +1091,7 @@ export default function MainDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {tankerSchedules.slice(0, 4).map((tanker) => {
+                      {societyTankers.slice(0, 4).map((tanker) => {
                         return (
                           <tr key={tanker.id} className="hover:bg-slate-50/60 transition">
                             <td className="py-2.5 whitespace-nowrap">
@@ -1152,7 +1168,7 @@ export default function MainDashboardPage() {
                 </div>
 
                 <div className="mt-3 space-y-2.5">
-                  {leakageReports.slice(0, 2).map((leak) => (
+                  {societyLeaks.slice(0, 2).map((leak) => (
                     <div
                       key={leak.id}
                       className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-slate-100/40 transition"
@@ -1441,7 +1457,7 @@ export default function MainDashboardPage() {
                   Verified receipt ledger with planned vs. actual intake variance.
                 </p>
               </div>
-              <span className="text-xs text-slate-400">{tankerSchedules.length} entries</span>
+              <span className="text-xs text-slate-400">{societyTankers.length} entries</span>
             </div>
 
             <div className="mt-4 overflow-x-auto">
@@ -1459,7 +1475,7 @@ export default function MainDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {tankerSchedules.map((t) => {
+                  {societyTankers.map((t) => {
                     const variance = t.actualQuantityLiters ? t.actualQuantityLiters - t.plannedQuantityLiters : 0;
                     return (
                       <tr key={t.id} className="hover:bg-slate-50/60 transition">
@@ -1575,7 +1591,7 @@ export default function MainDashboardPage() {
               </div>
 
               <div className="space-y-3">
-                {leakageReports.map((leak) => (
+                {societyLeaks.map((leak) => (
                   <div key={leak.id} className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 space-y-2">
                     <div className="flex items-start justify-between">
                       <div>

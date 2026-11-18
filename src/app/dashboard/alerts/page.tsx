@@ -32,7 +32,11 @@ export default function AlertsPage() {
   const [alertSeverity, setAlertSeverity] = useState<AlertNotification["severity"]>("warning");
   const [recommendedAction, setRecommendedAction] = useState("");
 
-  const filteredAlerts = alerts.filter((a) => {
+  const currentSocietyAlerts = alerts.filter((a) => a.societyId === selectedSociety.id).length > 0
+    ? alerts.filter((a) => a.societyId === selectedSociety.id)
+    : alerts;
+
+  const filteredAlerts = currentSocietyAlerts.filter((a) => {
     if (severityFilter === "all") return true;
     return a.severity === severityFilter;
   });

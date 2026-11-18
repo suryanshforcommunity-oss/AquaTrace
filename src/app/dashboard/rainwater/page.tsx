@@ -37,12 +37,16 @@ export default function RainwaterPage() {
   const { rwhUnits, maintenanceLogs, addRwhUnit, addMaintenanceLog, selectedSociety, currentRole } =
     useAppStore();
 
-  const [selectedUnitId, setSelectedUnitId] = useState<string>(rwhUnits[0]?.id || "rwh_001");
+  const currentSocietyUnits = rwhUnits.filter((u) => u.id.includes(selectedSociety.id)).length > 0
+    ? rwhUnits.filter((u) => u.id.includes(selectedSociety.id))
+    : rwhUnits;
+
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(currentSocietyUnits[0]?.id || "rwh_001");
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   // Calculator interactive state
-  const currentUnit = rwhUnits.find((u) => u.id === selectedUnitId) || rwhUnits[0];
+  const currentUnit = currentSocietyUnits.find((u) => u.id === selectedUnitId) || currentSocietyUnits[0];
 
   const [calcRoofArea, setCalcRoofArea] = useState<number>(currentUnit?.roofAreaSqM || 650);
   const [calcRainfall, setCalcRainfall] = useState<number>(currentUnit?.annualAvgRainfallMm || 850);
@@ -128,7 +132,7 @@ export default function RainwaterPage() {
     setIsRegisterModalOpen(false);
   };
 
-  const unitComparisonData = rwhUnits.map((u) => ({
+  const unitComparisonData = currentSocietyUnits.map((u) => ({
     name: u.buildingBlock,
     potential: Math.round(u.potentialVolumeLiters / 1000),
     actual: Math.round(u.actualCollectedLiters / 1000),
@@ -206,7 +210,7 @@ export default function RainwaterPage() {
 
       {/* RWH Units Selector & Status Bar */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {rwhUnits.map((unit) => {
+        {currentSocietyUnits.map((unit) => {
           const isSelected = unit.id === selectedUnitId;
           const statusStyle = getStatusColor(unit.status);
           return (
@@ -550,7 +554,7 @@ export default function RainwaterPage() {
                   onChange={(e) => setSelectedUnitId(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-primary focus:outline-none"
                 >
-                  {rwhUnits.map((u) => (
+                  {currentSocietyUnits.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.buildingBlock})
                     </option>

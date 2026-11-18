@@ -37,14 +37,18 @@ export default function WaterAvailabilityPage() {
   const [shortageStatus, setShortageStatus] = useState<"surplus" | "adequate" | "low" | "critical">("adequate");
   const [notes, setNotes] = useState<string>("");
 
-  const filteredLogs = availabilityLogs.filter((log) => {
+  const currentSocietyLogs = availabilityLogs.filter((log) => log.societyId === selectedSociety.id).length > 0
+    ? availabilityLogs.filter((log) => log.societyId === selectedSociety.id)
+    : availabilityLogs;
+
+  const filteredLogs = currentSocietyLogs.filter((log) => {
     if (selectedSourceFilter === "all") return true;
     return log.source === selectedSourceFilter;
   });
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const totalLoggedToday = availabilityLogs
-    .filter((l) => l.date === todayStr || l.date === availabilityLogs[0]?.date)
+  const totalLoggedToday = currentSocietyLogs
+    .filter((l) => l.date === todayStr || l.date === currentSocietyLogs[0]?.date)
     .reduce((acc, curr) => acc + (Number(curr.quantityLiters) || 0), 0);
 
   const handleSubmit = (e: React.FormEvent) => {

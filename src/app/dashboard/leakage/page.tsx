@@ -49,7 +49,11 @@ export default function LeakagePage() {
   const [technicianAssignee, setTechnicianAssignee] = useState("Ramesh Kumar (Plumber)");
   const [resolutionNotes, setResolutionNotes] = useState("");
 
-  const filteredReports = leakageReports.filter((r) => {
+  const currentSocietyReports = leakageReports.filter((r) => r.societyId === selectedSociety.id).length > 0
+    ? leakageReports.filter((r) => r.societyId === selectedSociety.id)
+    : leakageReports;
+
+  const filteredReports = currentSocietyReports.filter((r) => {
     if (filterStatus === "all") return true;
     return r.status === filterStatus;
   });
@@ -130,7 +134,7 @@ export default function LeakagePage() {
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Total Reports Logged
           </span>
-          <div className="mt-1 font-bold font-mono text-2xl text-slate-900">{leakageReports.length}</div>
+          <div className="mt-1 font-bold font-mono text-2xl text-slate-900">{currentSocietyReports.length}</div>
           <span className="text-[11px] text-slate-500">Across all wings and common areas</span>
         </div>
 
@@ -139,7 +143,7 @@ export default function LeakagePage() {
             Active / In Progress
           </span>
           <div className="mt-1 font-bold font-mono text-2xl text-amber-600">
-            {leakageReports.filter((r) => r.status !== "resolved").length}
+            {currentSocietyReports.filter((r) => r.status !== "resolved").length}
           </div>
           <span className="text-[11px] text-amber-700 font-medium">Technicians on-site</span>
         </div>
@@ -149,7 +153,7 @@ export default function LeakagePage() {
             Escalated to Utility
           </span>
           <div className="mt-1 font-bold font-mono text-2xl text-primary">
-            {leakageReports.filter((r) => r.forwardedUtilityChannel).length}
+            {currentSocietyReports.filter((r) => r.forwardedUtilityChannel).length}
           </div>
           <span className="text-[11px] text-slate-500">BWSSB municipal tracking IDs active</span>
         </div>
@@ -159,7 +163,7 @@ export default function LeakagePage() {
             Resolved Leaks
           </span>
           <div className="mt-1 font-bold font-mono text-2xl text-emerald-700">
-            {leakageReports.filter((r) => r.status === "resolved").length}
+            {currentSocietyReports.filter((r) => r.status === "resolved").length}
           </div>
           <span className="text-[11px] text-emerald-600 font-medium">Avg repair time: 4.2 hours</span>
         </div>

@@ -46,6 +46,15 @@ import {
   mockIoTDevices,
   mockWaterQualityReadings,
 } from "@/lib/mockData";
+import {
+  getAllSocietiesBorewells,
+  getAllSocietiesAvailabilityLogs,
+  getAllSocietiesTankerSchedules,
+  getAllSocietiesRwhUnits,
+  getAllSocietiesLeakageReports,
+  getAllSocietiesWaterSavingLogs,
+  getAllSocietiesAlerts,
+} from "@/lib/nagpurSocietyData";
 import { defaultPlatformConfig, PlatformConfig } from "@/lib/config";
 
 interface AppContextType {
@@ -148,6 +157,8 @@ function mergeById<T extends { id: string }>(base: T[], overlay: T[]): T[] {
   return Array.from(map.values());
 }
 
+const mergeEntityArrays = mergeById;
+
 const statusWeight: Record<string, number> = {
   resolved: 5,
   in_progress: 4,
@@ -233,12 +244,22 @@ async function syncToBackend(action: string, data: any) {
   }
 }
 
+const combinedBorewells = [...mockBorewellPoints, ...getAllSocietiesBorewells()];
+const combinedAvailabilityLogs = [...mockAvailabilityLogs, ...getAllSocietiesAvailabilityLogs()];
+const combinedTankerSchedules = [...mockTankerSchedules, ...getAllSocietiesTankerSchedules()];
+const combinedRwhUnits = [...mockRwhUnits, ...getAllSocietiesRwhUnits()];
+const combinedLeakageReports = [...mockLeakageReports, ...getAllSocietiesLeakageReports()];
+const combinedWaterSavingLogs = [...mockWaterSavingLogs, ...getAllSocietiesWaterSavingLogs()];
+const combinedAlerts = [...mockAlerts, ...getAllSocietiesAlerts()];
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<PlatformConfig>(defaultPlatformConfig);
   const [currentRole, setCurrentRoleState] = useState<UserRole>("resident");
   const [selectedSociety, setSelectedSocietyState] = useState<Society>(mockSocieties[0]);
   const [isEmergencyCutoffActive, setIsEmergencyCutoffActive] = useState<boolean>(false);
-  const [currentStorageLiters, setCurrentStorageLiters] = useState<number>(142500);
+  const [currentStorageLiters, setCurrentStorageLiters] = useState<number>(
+    Math.round((mockSocieties[0].usableStorageCapacityLiters || 320000) * 0.78)
+  );
 
   const setCurrentRole = (role: UserRole) => {
     setCurrentRoleState(role);
@@ -249,23 +270,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setSelectedSociety = (society: Society) => {
     setSelectedSocietyState(society);
+    const scaledStorage = Math.round((society.usableStorageCapacityLiters || 320000) * 0.78);
+    setCurrentStorageLiters(scaledStorage);
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}society`, JSON.stringify(society));
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, scaledStorage.toString());
     } catch {}
   };
 
-  // Core entities
-  const [availabilityLogs, setAvailabilityLogs] = useState<WaterAvailabilityLog[]>(mockAvailabilityLogs);
-  const [tankerSchedules, setTankerSchedules] = useState<TankerSchedule[]>(mockTankerSchedules);
-  const [borewellPoints, setBorewellPoints] = useState<BorewellPoint[]>(mockBorewellPoints);
+  // Core entities — pre-populated with Nagpur townships data
+  const [availabilityLogs, setAvailabilityLogs] = useState<WaterAvailabilityLog[]>(combinedAvailabilityLogs);
+  const [tankerSchedules, setTankerSchedules] = useState<TankerSchedule[]>(combinedTankerSchedules);
+  const [borewellPoints, setBorewellPoints] = useState<BorewellPoint[]>(combinedBorewells);
   const [groundwaterReadings, setGroundwaterReadings] = useState<GroundwaterReading[]>(mockGroundwaterReadings);
-  const [rwhUnits, setRwhUnits] = useState<RainwaterHarvestingUnit[]>(mockRwhUnits);
+  const [rwhUnits, setRwhUnits] = useState<RainwaterHarvestingUnit[]>(combinedRwhUnits);
   const [maintenanceLogs, setMaintenanceLogs] = useState<MaintenanceChecklistLog[]>(mockMaintenanceLogs);
-  const [leakageReports, setLeakageReports] = useState<LeakageReport[]>(mockLeakageReports);
-  const [waterSavingLogs, setWaterSavingLogs] = useState<WaterSavingLog[]>(mockWaterSavingLogs);
+  const [leakageReports, setLeakageReports] = useState<LeakageReport[]>(combinedLeakageReports);
+  const [waterSavingLogs, setWaterSavingLogs] = useState<WaterSavingLog[]>(combinedWaterSavingLogs);
   const [advisories, setAdvisories] = useState<CommunityAdvisory[]>(mockAdvisories);
   const [forumPosts, setForumPosts] = useState<ForumPost[]>(mockForumPosts);
-  const [alerts, setAlerts] = useState<AlertNotification[]>(mockAlerts);
+  const [alerts, setAlerts] = useState<AlertNotification[]>(combinedAlerts);
   const [iotDevices, setIotDevices] = useState<IoTDevice[]>(mockIoTDevices);
   const [waterQualityReadings, setWaterQualityReadings] = useState<WaterQualityReading[]>(mockWaterQualityReadings);
 
@@ -276,39 +300,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const savedRole = localStorage.getItem(`${STORAGE_KEY_PREFIX}role`);
       if (savedRole) setCurrentRoleState(savedRole as UserRole);
 
+      let activeSoc = mockSocieties[0];
       const savedSociety = localStorage.getItem(`${STORAGE_KEY_PREFIX}society`);
       if (savedSociety) {
-        setSelectedSocietyState(safeJsonParse(savedSociety, mockSocieties[0]));
+        activeSoc = safeJsonParse(savedSociety, mockSocieties[0]);
+        setSelectedSocietyState(activeSoc);
       }
 
       const savedLeaks = localStorage.getItem(`${STORAGE_KEY_PREFIX}leaks`);
-      if (savedLeaks) setLeakageReports(safeJsonParse(savedLeaks, mockLeakageReports));
+      if (savedLeaks) setLeakageReports(mergeLeakageReports(combinedLeakageReports, safeJsonParse(savedLeaks, [])));
+      else setLeakageReports(combinedLeakageReports);
 
       const savedTankers = localStorage.getItem(`${STORAGE_KEY_PREFIX}tankers`);
-      if (savedTankers) setTankerSchedules(safeJsonParse(savedTankers, mockTankerSchedules));
+      if (savedTankers) setTankerSchedules(mergeTankerSchedules(combinedTankerSchedules, safeJsonParse(savedTankers, [])));
+      else setTankerSchedules(combinedTankerSchedules);
 
       const savedAvail = localStorage.getItem(`${STORAGE_KEY_PREFIX}avail`);
-      if (savedAvail) setAvailabilityLogs(safeJsonParse(savedAvail, mockAvailabilityLogs));
+      if (savedAvail) setAvailabilityLogs(mergeEntityArrays(combinedAvailabilityLogs, safeJsonParse(savedAvail, [])));
+      else setAvailabilityLogs(combinedAvailabilityLogs);
 
       const savedSavings = localStorage.getItem(`${STORAGE_KEY_PREFIX}savings`);
-      if (savedSavings) setWaterSavingLogs(safeJsonParse(savedSavings, mockWaterSavingLogs));
+      if (savedSavings) setWaterSavingLogs(mergeEntityArrays(combinedWaterSavingLogs, safeJsonParse(savedSavings, [])));
+      else setWaterSavingLogs(combinedWaterSavingLogs);
 
       const savedGW = localStorage.getItem(`${STORAGE_KEY_PREFIX}groundwater`);
-      if (savedGW) setGroundwaterReadings(safeJsonParse(savedGW, mockGroundwaterReadings));
+      if (savedGW) setGroundwaterReadings(mergeEntityArrays(mockGroundwaterReadings, safeJsonParse(savedGW, [])));
 
       const savedMaintenance = localStorage.getItem(`${STORAGE_KEY_PREFIX}maintenance`);
-      if (savedMaintenance) setMaintenanceLogs(safeJsonParse(savedMaintenance, mockMaintenanceLogs));
+      if (savedMaintenance) setMaintenanceLogs(mergeEntityArrays(mockMaintenanceLogs, safeJsonParse(savedMaintenance, [])));
 
       const savedRwh = localStorage.getItem(`${STORAGE_KEY_PREFIX}rwh`);
-      if (savedRwh) setRwhUnits(safeJsonParse(savedRwh, mockRwhUnits));
+      if (savedRwh) setRwhUnits(mergeEntityArrays(combinedRwhUnits, safeJsonParse(savedRwh, [])));
+      else setRwhUnits(combinedRwhUnits);
 
       const savedAlerts = localStorage.getItem(`${STORAGE_KEY_PREFIX}alerts`);
-      if (savedAlerts) setAlerts(safeJsonParse(savedAlerts, mockAlerts));
+      if (savedAlerts) setAlerts(mergeEntityArrays(combinedAlerts, safeJsonParse(savedAlerts, [])));
+      else setAlerts(combinedAlerts);
 
       const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
       if (savedStorage) {
         const parsedNum = Number(savedStorage);
         if (!isNaN(parsedNum) && parsedNum > 0) setCurrentStorageLiters(parsedNum);
+        else setCurrentStorageLiters(Math.round((activeSoc.usableStorageCapacityLiters || 320000) * 0.78));
+      } else {
+        setCurrentStorageLiters(Math.round((activeSoc.usableStorageCapacityLiters || 320000) * 0.78));
       }
 
       const savedEmergency = localStorage.getItem(`${STORAGE_KEY_PREFIX}emergency`);

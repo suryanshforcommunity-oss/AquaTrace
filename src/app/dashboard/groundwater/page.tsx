@@ -53,8 +53,12 @@ export default function GroundwaterPage() {
   );
   const [readingNotes, setReadingNotes] = useState<string>("");
 
+  const currentSocietyBorewells = borewellPoints.filter((b) => b.id.includes(selectedSociety.id)).length > 0
+    ? borewellPoints.filter((b) => b.id.includes(selectedSociety.id))
+    : borewellPoints;
+
   const currentBorewell =
-    borewellPoints.find((b) => b.id === selectedBorewellId) || borewellPoints[0];
+    currentSocietyBorewells.find((b) => b.id === selectedBorewellId) || currentSocietyBorewells[0];
 
   const readingsForWell = groundwaterReadings.filter(
     (r) => r.borewellId === selectedBorewellId
@@ -190,7 +194,7 @@ export default function GroundwaterPage() {
             onChange={(e) => setSelectedBorewellId(e.target.value)}
             className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 focus:border-primary focus:outline-none"
           >
-            {borewellPoints.map((bw) => (
+            {currentSocietyBorewells.map((bw) => (
               <option key={bw.id} value={bw.id}>
                 {bw.name} ({bw.status.toUpperCase()})
               </option>
@@ -500,7 +504,7 @@ export default function GroundwaterPage() {
                 onChange={(e) => setSelectedBorewellId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-primary focus:outline-none"
               >
-                {borewellPoints.map((bw) => (
+                {currentSocietyBorewells.map((bw) => (
                   <option key={bw.id} value={bw.id}>
                     {bw.name}
                   </option>

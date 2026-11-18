@@ -86,25 +86,29 @@ export default function TankerPage() {
     }
   };
 
-  const totalDeliveredMonth = tankerSchedules
+  const currentSocietyTankers = tankerSchedules.filter((t) => t.societyId === selectedSociety.id).length > 0
+    ? tankerSchedules.filter((t) => t.societyId === selectedSociety.id)
+    : tankerSchedules;
+
+  const totalDeliveredMonth = currentSocietyTankers
     .filter((t) => t.status === "completed")
     .reduce((acc, curr) => acc + (curr.actualQuantityLiters || curr.plannedQuantityLiters), 0);
 
-  const totalPlannedMonth = tankerSchedules.reduce(
+  const totalPlannedMonth = currentSocietyTankers.reduce(
     (acc, curr) => acc + curr.plannedQuantityLiters,
     0
   );
 
-  const totalSpendMonth = tankerSchedules
+  const totalSpendMonth = currentSocietyTankers
     .filter((t) => t.status === "completed")
     .reduce((acc, curr) => acc + curr.costInINR, 0);
 
   // Filtered lists
-  const activeSchedules = tankerSchedules.filter(
+  const activeSchedules = currentSocietyTankers.filter(
     (t) => t.status === "scheduled" || t.status === "en_route" || t.status === "arrived"
   );
 
-  const completedHistory = tankerSchedules.filter((t) => {
+  const completedHistory = currentSocietyTankers.filter((t) => {
     const matchesSearch =
       t.tankerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
