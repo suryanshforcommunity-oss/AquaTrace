@@ -201,18 +201,25 @@ export async function POST(req: NextRequest) {
       }
 
       case "update_leakage_status": {
-        const { id, status, technician, notes } = data;
-        db.leakageReports = db.leakageReports.map((r) =>
-          r.id === id
-            ? {
-                ...r,
-                status,
-                assignedTechnician: technician || r.assignedTechnician,
-                resolutionTimestamp: status === "resolved" ? new Date().toISOString() : r.resolutionTimestamp,
-                resolutionNotes: notes || r.resolutionNotes,
-              }
-            : r
-        );
+        const { id, status, technician, notes, report } = data;
+        let found = false;
+        db.leakageReports = db.leakageReports.map((r) => {
+          if (r.id === id) {
+            found = true;
+            return {
+              ...r,
+              status,
+              assignedTechnician: technician || r.assignedTechnician,
+              resolutionTimestamp: status === "resolved" ? new Date().toISOString() : r.resolutionTimestamp,
+              resolutionNotes: notes || r.resolutionNotes,
+            };
+          }
+          return r;
+        });
+
+        if (!found && report) {
+          db.leakageReports = [report, ...db.leakageReports];
+        }
 
         if (status === "resolved") {
           const alert: AlertNotification = {

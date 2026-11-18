@@ -591,12 +591,14 @@
       "submittedBy": "Aarav Patel",
       "submitterContact": "+91 97110 54321",
       "timestamp": "2026-11-17T11:20:00Z",
-      "status": "forwarded",
+      "status": "resolved",
       "assignedTechnician": "Ramesh Kumar",
       "forwardedUtilityChannel": "RWA Maintenance Desk",
       "utilityReferenceNumber": "BWSSB-ESC-2026-9041",
       "forwardedTimestamp": "2026-11-17T11:45:00Z",
-      "notes": "Emergency isolation valve #3 closed to stop active leak; bypass line engaged."
+      "notes": "Emergency isolation valve #3 closed to stop active leak; bypass line engaged.",
+      "resolutionTimestamp": "2026-11-18T18:02:52.319Z",
+      "resolutionNotes": "Repaired"
     },
     {
       "id": "leak_002",
@@ -814,6 +816,18 @@
     }
   ],
   "alerts": [
+    {
+      "id": "alt_1795024972319_leak_res",
+      "societyId": "soc_greenwood_01",
+      "title": "Leakage Resolved & Verified",
+      "message": "Plumbing issue #leak_001 has been repaired by Ramesh Kumar and tested for line integrity.",
+      "severity": "success",
+      "source": "Technician Dispatch Desk",
+      "recommendedAction": "Close work ticket and archive report.",
+      "timestamp": "2026-11-18T18:02:52.319Z",
+      "isRead": false,
+      "actionUrl": "/dashboard/leakage"
+    },
     {
       "id": "alt_1795011398835_leak_res",
       "societyId": "soc_greenwood_01",
@@ -1043,5 +1057,5 @@
       "screeningDisclaimer": "Screening indicator only. Low mineralization characteristic of filtered rainwater."
     }
   ],
-  "lastUpdated": "2026-11-18T14:20:21.849Z"
+  "lastUpdated": "2026-11-18T18:02:52.319Z"
 }

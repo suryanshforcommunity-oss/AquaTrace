@@ -236,6 +236,24 @@ export default function LeakagePage() {
                     <span>{report.status.replace("_", " ")}</span>
                   </span>
 
+                  {(currentRole === "maintenance" || currentRole === "admin") && report.status !== "resolved" && (
+                    <button
+                      onClick={() => {
+                        updateLeakageStatus(
+                          report.id,
+                          "resolved",
+                          currentRole === "admin" ? "Vikram Sethi (Admin)" : "Ramesh Kumar (Plumber)",
+                          "Repaired and verified on-site by maintenance."
+                        );
+                      }}
+                      className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm"
+                      title="Quick mark as resolved"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Resolve</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setSelectedReport(report);
@@ -554,13 +572,32 @@ export default function LeakagePage() {
                     >
                       Cancel
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleResolve(selectedReport.id)}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
-                    >
-                      Mark as Resolved
-                    </button>
+                    {selectedReport.status !== "in_progress" && selectedReport.status !== "resolved" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateLeakageStatus(
+                            selectedReport.id,
+                            "in_progress",
+                            technicianAssignee,
+                            resolutionNotes || "Technician deployed on-site."
+                          );
+                          setIsDetailModalOpen(false);
+                        }}
+                        className="rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-amber-700 shadow-sm"
+                      >
+                        Start Work (In Progress)
+                      </button>
+                    )}
+                    {selectedReport.status !== "resolved" && (
+                      <button
+                        type="button"
+                        onClick={() => handleResolve(selectedReport.id)}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                      >
+                        Mark as Resolved
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

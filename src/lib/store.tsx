@@ -130,6 +130,85 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEY_PREFIX = "aquatrace_v2_";
 
+// Intelligent merge helpers to prevent refresh data loss
+function mergeById<T extends { id: string }>(base: T[], overlay: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const item of base) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const item of overlay) {
+    if (item && item.id) {
+      if (map.has(item.id)) {
+        map.set(item.id, { ...map.get(item.id)!, ...item });
+      } else {
+        map.set(item.id, item);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+const statusWeight: Record<string, number> = {
+  resolved: 5,
+  in_progress: 4,
+  forwarded: 3,
+  under_review: 2,
+  submitted: 1,
+};
+
+function mergeLeakageReports(base: LeakageReport[], overlay: LeakageReport[]): LeakageReport[] {
+  const map = new Map<string, LeakageReport>();
+  for (const item of base) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const item of overlay) {
+    if (item && item.id) {
+      const existing = map.get(item.id);
+      if (!existing) {
+        map.set(item.id, item);
+      } else {
+        const itemWeight = statusWeight[item.status] || 0;
+        const existingWeight = statusWeight[existing.status] || 0;
+        const finalStatus = itemWeight >= existingWeight ? item.status : existing.status;
+        map.set(item.id, {
+          ...existing,
+          ...item,
+          status: finalStatus,
+          assignedTechnician: item.assignedTechnician || existing.assignedTechnician,
+          resolutionNotes: item.resolutionNotes || existing.resolutionNotes,
+          resolutionTimestamp: item.resolutionTimestamp || existing.resolutionTimestamp,
+        });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+function mergeTankerSchedules(base: TankerSchedule[], overlay: TankerSchedule[]): TankerSchedule[] {
+  const map = new Map<string, TankerSchedule>();
+  for (const item of base) {
+    if (item && item.id) map.set(item.id, item);
+  }
+  for (const item of overlay) {
+    if (item && item.id) {
+      const existing = map.get(item.id);
+      if (!existing) {
+        map.set(item.id, item);
+      } else {
+        const isCompleted = item.status === "completed" || existing.status === "completed";
+        map.set(item.id, {
+          ...existing,
+          ...item,
+          status: isCompleted ? "completed" : item.status || existing.status,
+          actualQuantityLiters: item.actualQuantityLiters || existing.actualQuantityLiters,
+          actualArrivalTime: item.actualArrivalTime || existing.actualArrivalTime,
+        });
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 // Helper function to sync mutations to the local backend API
 async function syncToBackend(action: string, data: any) {
   try {
@@ -146,7 +225,7 @@ async function syncToBackend(action: string, data: any) {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<PlatformConfig>(defaultPlatformConfig);
   const [currentRole, setCurrentRoleState] = useState<UserRole>("resident");
-  const [selectedSociety, setSelectedSociety] = useState<Society>(mockSocieties[0]);
+  const [selectedSociety, setSelectedSocietyState] = useState<Society>(mockSocieties[0]);
   const [isEmergencyCutoffActive, setIsEmergencyCutoffActive] = useState<boolean>(false);
   const [currentStorageLiters, setCurrentStorageLiters] = useState<number>(142500);
 
@@ -154,6 +233,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentRoleState(role);
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}role`, role);
+    } catch {}
+  };
+
+  const setSelectedSociety = (society: Society) => {
+    setSelectedSocietyState(society);
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}society`, JSON.stringify(society));
     } catch {}
   };
 
@@ -172,70 +258,223 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [iotDevices, setIotDevices] = useState<IoTDevice[]>(mockIoTDevices);
   const [waterQualityReadings, setWaterQualityReadings] = useState<WaterQualityReading[]>(mockWaterQualityReadings);
 
-  // Initialize from Local Backend / LocalStorage on mount
+  // Initialize from LocalStorage immediately & merge with Backend / Firestore on mount
   useEffect(() => {
+    // Phase 1: Fast local load from LocalStorage to prevent flash of default state
+    try {
+      const savedRole = localStorage.getItem(`${STORAGE_KEY_PREFIX}role`);
+      if (savedRole) setCurrentRoleState(savedRole as UserRole);
+
+      const savedSociety = localStorage.getItem(`${STORAGE_KEY_PREFIX}society`);
+      if (savedSociety) {
+        try { setSelectedSocietyState(JSON.parse(savedSociety)); } catch {}
+      }
+
+      const savedLeaks = localStorage.getItem(`${STORAGE_KEY_PREFIX}leaks`);
+      if (savedLeaks) setLeakageReports(JSON.parse(savedLeaks));
+
+      const savedTankers = localStorage.getItem(`${STORAGE_KEY_PREFIX}tankers`);
+      if (savedTankers) setTankerSchedules(JSON.parse(savedTankers));
+
+      const savedAvail = localStorage.getItem(`${STORAGE_KEY_PREFIX}avail`);
+      if (savedAvail) setAvailabilityLogs(JSON.parse(savedAvail));
+
+      const savedSavings = localStorage.getItem(`${STORAGE_KEY_PREFIX}savings`);
+      if (savedSavings) setWaterSavingLogs(JSON.parse(savedSavings));
+
+      const savedGW = localStorage.getItem(`${STORAGE_KEY_PREFIX}groundwater`);
+      if (savedGW) setGroundwaterReadings(JSON.parse(savedGW));
+
+      const savedMaintenance = localStorage.getItem(`${STORAGE_KEY_PREFIX}maintenance`);
+      if (savedMaintenance) setMaintenanceLogs(JSON.parse(savedMaintenance));
+
+      const savedRwh = localStorage.getItem(`${STORAGE_KEY_PREFIX}rwh`);
+      if (savedRwh) setRwhUnits(JSON.parse(savedRwh));
+
+      const savedAlerts = localStorage.getItem(`${STORAGE_KEY_PREFIX}alerts`);
+      if (savedAlerts) setAlerts(JSON.parse(savedAlerts));
+
+      const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
+      if (savedStorage) setCurrentStorageLiters(Number(savedStorage));
+
+      const savedEmergency = localStorage.getItem(`${STORAGE_KEY_PREFIX}emergency`);
+      if (savedEmergency !== null) setIsEmergencyCutoffActive(savedEmergency === "true");
+
+      const savedQuality = localStorage.getItem(`${STORAGE_KEY_PREFIX}quality`);
+      if (savedQuality) setWaterQualityReadings(JSON.parse(savedQuality));
+
+      const savedForum = localStorage.getItem(`${STORAGE_KEY_PREFIX}forum`);
+      if (savedForum) setForumPosts(JSON.parse(savedForum));
+    } catch (e) {
+      console.warn("LocalStorage initial read notice:", e);
+    }
+
+    // Phase 2: Fetch and intelligently MERGE backend data (never clobbering resolved/saved state)
     async function initFromBackend() {
       try {
         const res = await fetch("/api/data");
         if (res.ok) {
           const db = await res.json();
-          if (db.availabilityLogs) setAvailabilityLogs(db.availabilityLogs);
-          if (db.tankerSchedules) setTankerSchedules(db.tankerSchedules);
+          if (db.leakageReports) {
+            setLeakageReports((prev) => {
+              const merged = mergeLeakageReports(db.leakageReports, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}leaks`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.tankerSchedules) {
+            setTankerSchedules((prev) => {
+              const merged = mergeTankerSchedules(db.tankerSchedules, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}tankers`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.availabilityLogs) {
+            setAvailabilityLogs((prev) => {
+              const merged = mergeById(db.availabilityLogs, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}avail`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.waterSavingLogs) {
+            setWaterSavingLogs((prev) => {
+              const merged = mergeById(db.waterSavingLogs, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}savings`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.groundwaterReadings) {
+            setGroundwaterReadings((prev) => {
+              const merged = mergeById(db.groundwaterReadings, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}groundwater`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.maintenanceLogs) {
+            setMaintenanceLogs((prev) => {
+              const merged = mergeById(db.maintenanceLogs, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}maintenance`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.rwhUnits) {
+            setRwhUnits((prev) => {
+              const merged = mergeById(db.rwhUnits, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}rwh`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.waterQualityReadings) {
+            setWaterQualityReadings((prev) => {
+              const merged = mergeById(db.waterQualityReadings, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}quality`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.forumPosts) {
+            setForumPosts((prev) => {
+              const merged = mergeById(db.forumPosts, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}forum`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+          if (db.alerts) {
+            setAlerts((prev) => {
+              const merged = mergeById(db.alerts, prev);
+              try { localStorage.setItem(`${STORAGE_KEY_PREFIX}alerts`, JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
           if (db.borewellPoints) setBorewellPoints(db.borewellPoints);
-          if (db.groundwaterReadings) setGroundwaterReadings(db.groundwaterReadings);
-          if (db.rwhUnits) setRwhUnits(db.rwhUnits);
-          if (db.maintenanceLogs) setMaintenanceLogs(db.maintenanceLogs);
-          if (db.leakageReports) setLeakageReports(db.leakageReports);
-          if (db.waterSavingLogs) setWaterSavingLogs(db.waterSavingLogs);
-          if (db.alerts) setAlerts(db.alerts);
           if (db.advisories) setAdvisories(db.advisories);
-          if (db.forumPosts) setForumPosts(db.forumPosts);
           if (db.iotDevices) setIotDevices(db.iotDevices);
-          if (db.waterQualityReadings) setWaterQualityReadings(db.waterQualityReadings);
-          if (db.currentStorageLiters !== undefined) setCurrentStorageLiters(db.currentStorageLiters);
-          if (db.isEmergencyCutoffActive !== undefined) setIsEmergencyCutoffActive(db.isEmergencyCutoffActive);
           if (db.config) setConfig(db.config);
-          return;
         }
       } catch (err) {
         console.warn("Could not fetch from /api/data, using local store:", err);
       }
 
-      // Fallback to LocalStorage
+      // Phase 3: Hydrate & merge from Firebase Cloud Firestore
       try {
-        const savedRole = localStorage.getItem(`${STORAGE_KEY_PREFIX}role`);
-        if (savedRole) setCurrentRoleState(savedRole as UserRole);
+        const [
+          remoteAlerts,
+          remoteLeaks,
+          remoteTankers,
+          remoteAvail,
+          remoteSavings,
+          remoteGW,
+          remoteQuality,
+          remotePosts,
+        ] = await Promise.all([
+          fetchCollectionFromFirestore<AlertNotification>("notifications", 30),
+          fetchCollectionFromFirestore<LeakageReport>("leakage_reports", 30),
+          fetchCollectionFromFirestore<TankerSchedule>("tanker_schedules", 30),
+          fetchCollectionFromFirestore<WaterAvailabilityLog>("availability_logs", 30),
+          fetchCollectionFromFirestore<WaterSavingLog>("water_saving_logs", 30),
+          fetchCollectionFromFirestore<GroundwaterReading>("groundwater_readings", 30),
+          fetchCollectionFromFirestore<WaterQualityReading>("water_quality_readings", 30),
+          fetchCollectionFromFirestore<ForumPost>("forum_posts", 30),
+        ]);
 
-        const savedLeaks = localStorage.getItem(`${STORAGE_KEY_PREFIX}leaks`);
-        if (savedLeaks) setLeakageReports(JSON.parse(savedLeaks));
-
-        const savedSavings = localStorage.getItem(`${STORAGE_KEY_PREFIX}savings`);
-        if (savedSavings) setWaterSavingLogs(JSON.parse(savedSavings));
-
-        const savedTankers = localStorage.getItem(`${STORAGE_KEY_PREFIX}tankers`);
-        if (savedTankers) setTankerSchedules(JSON.parse(savedTankers));
-
-        const savedGW = localStorage.getItem(`${STORAGE_KEY_PREFIX}groundwater`);
-        if (savedGW) setGroundwaterReadings(JSON.parse(savedGW));
-
-        const savedAvail = localStorage.getItem(`${STORAGE_KEY_PREFIX}avail`);
-        if (savedAvail) setAvailabilityLogs(JSON.parse(savedAvail));
-
-        const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
-        if (savedStorage) setCurrentStorageLiters(Number(savedStorage));
-      } catch {}
-
-      // Hydrate alerts from Firestore if available
-      try {
-        const remoteAlerts = await fetchCollectionFromFirestore<AlertNotification>("notifications", 20);
-        if (remoteAlerts && remoteAlerts.length > 0) {
-          setAlerts((prev) => {
-            const seen = new Set(prev.map((a) => a.id));
-            const newOnes = remoteAlerts.filter((a) => a && a.id && !seen.has(a.id));
-            return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
+        if (remoteLeaks && remoteLeaks.length > 0) {
+          setLeakageReports((prev) => {
+            const merged = mergeLeakageReports(prev, remoteLeaks);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}leaks`, JSON.stringify(merged)); } catch {}
+            return merged;
           });
         }
-      } catch {}
+        if (remoteTankers && remoteTankers.length > 0) {
+          setTankerSchedules((prev) => {
+            const merged = mergeTankerSchedules(prev, remoteTankers);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}tankers`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remoteAvail && remoteAvail.length > 0) {
+          setAvailabilityLogs((prev) => {
+            const merged = mergeById(prev, remoteAvail);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}avail`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remoteSavings && remoteSavings.length > 0) {
+          setWaterSavingLogs((prev) => {
+            const merged = mergeById(prev, remoteSavings);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}savings`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remoteGW && remoteGW.length > 0) {
+          setGroundwaterReadings((prev) => {
+            const merged = mergeById(prev, remoteGW);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}groundwater`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remoteQuality && remoteQuality.length > 0) {
+          setWaterQualityReadings((prev) => {
+            const merged = mergeById(prev, remoteQuality);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}quality`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remotePosts && remotePosts.length > 0) {
+          setForumPosts((prev) => {
+            const merged = mergeById(prev, remotePosts);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}forum`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+        if (remoteAlerts && remoteAlerts.length > 0) {
+          setAlerts((prev) => {
+            const merged = mergeById(prev, remoteAlerts);
+            try { localStorage.setItem(`${STORAGE_KEY_PREFIX}alerts`, JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+      } catch (fbErr) {
+        console.warn("Firestore sync notice (offline or test):", fbErr);
+      }
     }
 
     initFromBackend();
@@ -254,6 +493,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleEmergencyCutoff = () => {
     setIsEmergencyCutoffActive((prev) => {
       const next = !prev;
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}emergency`, String(next));
+      } catch {}
       triggerAlert({
         societyId: selectedSociety.id,
         title: next ? "EMERGENCY MAIN VALVE CUTOFF ENGAGED" : "Emergency Main Valve Re-opened",
@@ -476,7 +718,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...unit,
       id: `rwh_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
     };
-    setRwhUnits((prev) => [...prev, newEntry]);
+    setRwhUnits((prev) => {
+      const updated = [...prev, newEntry];
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}rwh`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncToBackend("add_rwh_unit", newEntry);
   };
 
@@ -486,11 +734,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       id: `mnt_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
     };
 
-    setMaintenanceLogs((prev) => [newEntry, ...prev]);
+    setMaintenanceLogs((prev) => {
+      const updated = [newEntry, ...prev];
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}maintenance`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Update parent RWH status
-    setRwhUnits((prev) =>
-      prev.map((u) =>
+    setRwhUnits((prev) => {
+      const updated: RainwaterHarvestingUnit[] = prev.map((u) =>
         u.id === log.unitId
           ? {
               ...u,
@@ -498,8 +752,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
               status: log.overallStatus === "passed" ? "optimal" : "maintenance_due",
             }
           : u
-      )
-    );
+      );
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}rwh`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     triggerAlert({
       societyId: selectedSociety.id,
@@ -551,6 +809,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     technician?: string,
     notes?: string
   ) => {
+    let resolvedItem: LeakageReport | null = null;
     setLeakageReports((prev) => {
       const updated = prev.map((item) => {
         if (item.id === id) {
@@ -561,6 +820,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             resolutionTimestamp: status === "resolved" ? new Date().toISOString() : item.resolutionTimestamp,
             resolutionNotes: notes || item.resolutionNotes,
           };
+          resolvedItem = mod;
           saveLeakageReportToFirestore(mod);
           return mod;
         }
@@ -583,7 +843,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    syncToBackend("update_leakage_status", { id, status, technician, notes });
+    syncToBackend("update_leakage_status", { id, status, technician, notes, report: resolvedItem });
   };
 
   const forwardLeakageToUtility = (
@@ -690,7 +950,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       upvotes: 1,
       repliesCount: 0,
     };
-    setForumPosts((prev) => [newEntry, ...prev]);
+    setForumPosts((prev) => {
+      const updated = [newEntry, ...prev];
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}forum`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     triggerAlert({
       societyId: selectedSociety.id,
@@ -706,22 +972,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const upvoteForumPost = (id: string) => {
-    setForumPosts((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, upvotes: item.upvotes + 1 } : item))
-    );
+    setForumPosts((prev) => {
+      const updated = prev.map((item) => (item.id === id ? { ...item, upvotes: item.upvotes + 1 } : item));
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}forum`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncToBackend("upvote_post", { id });
   };
 
   // Alerts
   const markAlertRead = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((item) => (id === "all" || item.id === id ? { ...item, isRead: true } : item))
-    );
+    setAlerts((prev) => {
+      const updated = prev.map((item) => (id === "all" || item.id === id ? { ...item, isRead: true } : item));
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}alerts`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncToBackend("mark_alert_read", { id });
   };
 
   const dismissAlert = (id: string) => {
-    setAlerts((prev) => prev.filter((item) => item.id !== id));
+    setAlerts((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}alerts`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncToBackend("dismiss_alert", { id });
   };
 
@@ -732,7 +1012,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       timestamp: new Date().toISOString(),
       isRead: false,
     };
-    setAlerts((prev) => [newEntry, ...prev]);
+    setAlerts((prev) => {
+      const updated = [newEntry, ...prev];
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}alerts`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
     syncToBackend("trigger_alert", newEntry);
     saveNotificationToFirestore(newEntry);
   };
@@ -744,7 +1030,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       id: `wq_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       timestamp: new Date().toISOString(),
     };
-    setWaterQualityReadings((prev) => [newEntry, ...prev]);
+    setWaterQualityReadings((prev) => {
+      const updated = [newEntry, ...prev];
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}quality`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     triggerAlert({
       societyId: selectedSociety.id,
