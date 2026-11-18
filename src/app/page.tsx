@@ -168,8 +168,8 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Community Field Deployment & Interactive Telemetry Terminal */}
-          <div className="mt-12 space-y-6 lg:mt-16">
+          {/* Community Field Deployment Showcase */}
+          <div className="mt-12 lg:mt-16">
             {/* Real-World Field Deployment Showcase (Full Uncropped Image) */}
             <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10 transition duration-300 hover:shadow-card-hover">
               <div className="overflow-hidden rounded-xl bg-slate-900">
@@ -180,115 +180,9 @@ export default function LandingPage() {
                 />
               </div>
             </div>
-
-            {/* Interactive SaaS Product Mockup Preview in Hero */}
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10">
-              <div className="rounded-xl border border-slate-100 bg-slate-900 p-4 text-white sm:p-6 space-y-6">
-              {/* Mockup Window Chrome */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-                    <span className="h-3 w-3 rounded-full bg-amber-500/80" />
-                    <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-                  </div>
-                  <span className="text-xs font-mono text-slate-400 ml-2">
-                    aquatrace.internal/society/greenwood-rwa/telemetry
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>LIVE REFRESH: 12s</span>
-                  <Link
-                    href="/dashboard"
-                    className="ml-3 rounded-md bg-primary px-3 py-1 text-xs font-bold text-white hover:bg-primary-hover transition"
-                  >
-                    Open Full App &rarr;
-                  </Link>
-                </div>
-              </div>
-
-              {/* 4 Interactive Live Metric Cards */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* 1. Usable Stored Water */}
-                <div className="rounded-xl bg-slate-800/80 border border-slate-700/60 p-4 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
-                    <span>Usable Stored Water</span>
-                    <Droplets className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="text-2xl font-extrabold font-mono text-white">142,500 L</div>
-                  <div className="h-2 w-full rounded-full bg-slate-700 overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: "78%" }} />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>78% Sump Capacity</span>
-                    <span className="text-emerald-400">+3.2% vs yesterday</span>
-                  </div>
-                </div>
-
-                {/* 2. Groundwater Depth */}
-                <div className="rounded-xl bg-slate-800/80 border border-slate-700/60 p-4 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
-                    <span>Groundwater Hydrostatic Depth</span>
-                    <ArrowDownToLine className="h-4 w-4 text-aqua" />
-                  </div>
-                  <div className="text-2xl font-extrabold font-mono text-white">18.4 m</div>
-                  <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                    <span>Casing Datum: +920.4m MSL</span>
-                    <span className="text-amber-400 font-semibold">Caution (&gt;15m)</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500">Borewell #2 · Inverted Hydrograph</div>
-                </div>
-
-                {/* 3. Days of Water Remaining */}
-                <div className="rounded-xl bg-slate-800/80 border border-slate-700/60 p-4 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
-                    <span>Days Remaining Buffer</span>
-                    <Hourglass className="h-4 w-4 text-amber-400" />
-                  </div>
-                  <div className="text-2xl font-extrabold font-mono text-amber-400">4.2 Days</div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Burn: 34,000 L/day</span>
-                    <span>101 Hours Left</span>
-                  </div>
-                  <div className="text-[10px] text-emerald-400">Depletion Runway Normal</div>
-                </div>
-
-                {/* 4. Next Tanker Arrival */}
-                <div className="rounded-xl bg-slate-800/80 border border-slate-700/60 p-4 space-y-2">
-                  <div className="flex items-center justify-between text-slate-400 text-xs">
-                    <span>Next Municipal Tanker</span>
-                    <Truck className="h-4 w-4 text-orange" />
-                  </div>
-                  <div className="text-2xl font-extrabold font-mono text-white">16:30 IST</div>
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>KA-04-E-8821</span>
-                    <span className="text-emerald-400 font-bold">En Route (24m)</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500">6,000 L · Flowmeter Gate Check</div>
-                </div>
-              </div>
-
-              {/* Live Ingestion Stream Banner */}
-              <div className="rounded-lg bg-slate-950/70 border border-slate-800 p-3 font-mono text-xs flex flex-wrap items-center justify-between gap-3 text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Radio className="h-4 w-4 text-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400">MQTT TELEMETRY:</span>
-                  <span>ESP32-NODE-BW02 &rarr; 18.42m depth · Sump ultrasonic ping: 78.4% · Flow: 84 LPM</span>
-                </div>
-                <Link
-                  href="/dashboard"
-                  className="text-xs text-primary-dim hover:text-white underline font-sans font-semibold"
-                >
-                  View Live Society Dashboard &rarr;
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
       {/* The 5 Mandatory Core Features (Asymmetric SaaS Bento Grid) */}
       <section id="features" className="py-20 bg-white border-y border-slate-200">
