@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isSocietyMember(societyId) {
+      return isAuthenticated() && getUserData().societyId == societyId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+    
+    function isMaintenance() {
+      return isAuthenticated() && (getUserData().role == 'maintenance' || getUserData().role == 'admin');
+    }
+    
+    function isUtilityAuthority() {
+      return isAuthenticated() && (getUserData().role == 'utility' || getUserData().role == 'admin');
+    }
+
+    // Societies: Readable by members, editable only by platform admin
+    match /societies/{societyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Water Availability Logs
+    match /availabilityLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isSocietyMember(request.resource.data.societyId);
+      allow update, delete: if isAdmin();
+    }
+
+    // Tanker Schedules & Gate Deliveries
+    match /tankerSchedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() || isMaintenance();
+      allow delete: if isAdmin();
+    }
+
+    // Borewell Monitoring Points
+    match /borewellPoints/{pointId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Groundwater Telemetry & Manual Readings
+    match /groundwaterReadings/{readingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Rainwater Harvesting Units & Checklists
+    match /harvestingUnits/{unitId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isMaintenance();
+    }
+    
+    match /maintenanceLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isMaintenance();
+      allow update, delete: if isAdmin();
+    }
+
+    // Leakage & Wastage Reports
+    match /leakageReports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isMaintenance() || isUtilityAuthority();
+      allow delete: if isAdmin();
+    }
+
+    // Community Water Saving Logs
+    match /waterSavingLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      // Admin verification can only be toggled by society admin
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Forum Posts & Advisories
+    match /forumPosts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // For upvoting
+      allow delete: if isAdmin() || request.auth.uid == resource.data.authorId;
+    }
+
+    match /advisories/{advisoryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Intelligent Alerts
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // IoT Sensor Ingestion: Authenticated via device service token
+    match /sensorReadings/{readingId} {
+      allow read: if isAuthenticated();
+      allow create: if request.auth.token.isIoTDevice == true || isAdmin();
+    }
+  }
+}
+
