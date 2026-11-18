@@ -2,6 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
+  saveNotificationToFirestore,
+  saveAvailabilityLogToFirestore,
+  saveTankerScheduleToFirestore,
+  saveLeakageReportToFirestore,
+  saveGroundwaterReadingToFirestore,
+  saveWaterSavingLogToFirestore,
+  saveWaterQualityToFirestore,
+  saveForumPostToFirestore,
+  updateStorageLevelInFirestore,
+  fetchCollectionFromFirestore,
+} from "@/lib/firebase";
+import {
   UserRole,
   Society,
   WaterAvailabilityLog,
@@ -212,6 +224,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
         if (savedStorage) setCurrentStorageLiters(Number(savedStorage));
       } catch {}
+
+      // Hydrate alerts from Firestore if available
+      try {
+        const remoteAlerts = await fetchCollectionFromFirestore<AlertNotification>("notifications", 20);
+        if (remoteAlerts && remoteAlerts.length > 0) {
+          setAlerts((prev) => {
+            const seen = new Set(prev.map((a) => a.id));
+            const newOnes = remoteAlerts.filter((a) => a && a.id && !seen.has(a.id));
+            return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
+          });
+        }
+      } catch {}
     }
 
     initFromBackend();
@@ -268,6 +292,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, String(nextVal));
       } catch {}
+      updateStorageLevelInFirestore(selectedSociety.id, nextVal);
       return nextVal;
     });
 
@@ -283,6 +308,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_availability_log", newEntry);
+    saveAvailabilityLogToFirestore(newEntry);
   };
 
   // Tanker Management
@@ -311,18 +337,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_tanker", newEntry);
+    saveTankerScheduleToFirestore(newEntry);
   };
 
   const confirmTankerArrival = (id: string, actualLiters: number, notes?: string) => {
     let vendorName = "Private Tanker";
     let tankerNum = "KA-01";
+    let confirmedTanker: TankerSchedule | null = null;
 
     setTankerSchedules((prev) => {
       const updated = prev.map((item) => {
         if (item.id === id) {
           vendorName = item.vendorName;
           tankerNum = item.tankerNumber;
-          return {
+          confirmedTanker = {
             ...item,
             actualQuantityLiters: actualLiters,
             status: "completed" as const,
@@ -330,6 +358,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             confirmedBy: "Vikram Sethi (Admin Verified)",
             notes: notes || item.notes,
           };
+          return confirmedTanker;
         }
         return item;
       });
@@ -338,6 +367,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch {}
       return updated;
     });
+
+    if (confirmedTanker) {
+      saveTankerScheduleToFirestore(confirmedTanker);
+    }
 
     // Also automatically log into Daily Water Availability!
     addAvailabilityLog({
@@ -370,7 +403,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateTankerStatus = (id: string, status: TankerSchedule["status"]) => {
     setTankerSchedules((prev) => {
-      const updated = prev.map((item) => (item.id === id ? { ...item, status } : item));
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          const mod = { ...item, status };
+          saveTankerScheduleToFirestore(mod);
+          return mod;
+        }
+        return item;
+      });
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}tankers`, JSON.stringify(updated));
       } catch {}
@@ -427,6 +467,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     syncToBackend("add_groundwater", newEntry);
+    saveGroundwaterReadingToFirestore(newEntry);
   };
 
   // Rainwater
@@ -501,6 +542,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_leakage", newEntry);
+    saveLeakageReportToFirestore(newEntry);
   };
 
   const updateLeakageStatus = (
@@ -510,17 +552,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     notes?: string
   ) => {
     setLeakageReports((prev) => {
-      const updated = prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status,
-              assignedTechnician: technician || item.assignedTechnician,
-              resolutionTimestamp: status === "resolved" ? new Date().toISOString() : item.resolutionTimestamp,
-              resolutionNotes: notes || item.resolutionNotes,
-            }
-          : item
-      );
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          const mod = {
+            ...item,
+            status,
+            assignedTechnician: technician || item.assignedTechnician,
+            resolutionTimestamp: status === "resolved" ? new Date().toISOString() : item.resolutionTimestamp,
+            resolutionNotes: notes || item.resolutionNotes,
+          };
+          saveLeakageReportToFirestore(mod);
+          return mod;
+        }
+        return item;
+      });
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}leaks`, JSON.stringify(updated));
       } catch {}
@@ -547,17 +592,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ) => {
     const refNum = `BWSSB-ESC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
     setLeakageReports((prev) => {
-      const updated = prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "forwarded" as const,
-              forwardedUtilityChannel: channel,
-              utilityReferenceNumber: refNum,
-              forwardedTimestamp: new Date().toISOString(),
-            }
-          : item
-      );
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          const mod = {
+            ...item,
+            status: "forwarded" as const,
+            forwardedUtilityChannel: channel,
+            utilityReferenceNumber: refNum,
+            forwardedTimestamp: new Date().toISOString(),
+          };
+          saveLeakageReportToFirestore(mod);
+          return mod;
+        }
+        return item;
+      });
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}leaks`, JSON.stringify(updated));
       } catch {}
@@ -607,19 +655,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_water_saving", newEntry);
+    saveWaterSavingLogToFirestore(newEntry);
   };
 
   const verifyWaterSavingLog = (id: string, adminName: string) => {
     setWaterSavingLogs((prev) => {
-      const updated = prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              isVerifiedByAdmin: true,
-              verifiedBy: adminName,
-            }
-          : item
-      );
+      const updated = prev.map((item) => {
+        if (item.id === id) {
+          const mod = {
+            ...item,
+            isVerifiedByAdmin: true,
+            verifiedBy: adminName,
+          };
+          saveWaterSavingLogToFirestore(mod);
+          return mod;
+        }
+        return item;
+      });
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}savings`, JSON.stringify(updated));
       } catch {}
@@ -650,6 +702,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_forum_post", newEntry);
+    saveForumPostToFirestore(newEntry);
   };
 
   const upvoteForumPost = (id: string) => {
@@ -681,6 +734,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setAlerts((prev) => [newEntry, ...prev]);
     syncToBackend("trigger_alert", newEntry);
+    saveNotificationToFirestore(newEntry);
   };
 
   // IoT Devices & Quality
@@ -702,6 +756,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     syncToBackend("add_water_quality", newEntry);
+    saveWaterQualityToFirestore(newEntry);
   };
 
   const ingestDeviceTelemetry = (reading: {

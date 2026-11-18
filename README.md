@@ -215,6 +215,54 @@ pnpm start
 
 ---
 
+## 🔥 Firebase Cloud Firestore Integration
+
+AquaTrace is integrated with **Firebase Cloud Firestore** for persistent real-time storage of community alerts, notification logs, citizen water saving submissions, leak reports, and tanker verification history.
+
+### 1. Collections Managed in Firestore
+
+| Collection | Description | Triggers / Source |
+|---|---|---|
+| `notifications` | Community water emergency, low-buffer, and verification alerts | System thresholds, admin actions, citizen reports |
+| `availability_logs` | Water intake ledger entries (Municipal, Tanker, Borewell, RWH) | Manual gate logs, flowmeter readings |
+| `tanker_schedules` | Upcoming and fulfilled water tanker logistics & flowmeter logs | Tanker booking desk & gate arrival checks |
+| `leakage_reports` | Citizen pipe burst and overflow reports with BWSSB escalation | Resident submission form & utility bridge |
+| `groundwater_readings` | Borewell piezometer & manual dip-tape aquifer levels | Hydrostatic IoT probes & acoustic dip tapes |
+| `water_saving_logs` | Verified resident conservation actions & community leaderboard | Resident conservation log form |
+| `water_quality_readings`| TDS, Turbidity, and pH potability screening readings | Sensor probes & water testing kits |
+| `forum_posts` | Threaded discussions, seasonal conservation tips & upvotes | Community forum |
+| `society_storage` | Live society reservoir reserves & capacity levels | Inflow and consumption burn calculations |
+
+### 2. Firestore Security Rules
+The repository includes a ready-to-deploy [`firestore.rules`](./firestore.rules) file:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /notifications/{id} { allow read, write: if true; }
+    match /availability_logs/{id} { allow read, write: if true; }
+    match /tanker_schedules/{id} { allow read, write: if true; }
+    match /leakage_reports/{id} { allow read, write: if true; }
+    match /groundwater_readings/{id} { allow read, write: if true; }
+    match /water_saving_logs/{id} { allow read, write: if true; }
+    match /water_quality_readings/{id} { allow read, write: if true; }
+    match /forum_posts/{id} { allow read, write: if true; }
+    match /society_storage/{id} { allow read, write: if true; }
+    match /{document=**} { allow read, write: if true; }
+  }
+}
+```
+
+### 3. Setting Up Firestore in the Firebase Console
+1. Navigate to the [Firebase Console](https://console.firebase.google.com/) and select your project (`aquatrace-d44d7`).
+2. In the left sidebar, click **Build** $\rightarrow$ **Firestore Database**.
+3. Click **Create Database**.
+4. Choose your Cloud Firestore location (e.g., `asia-south1` for Mumbai/India or `nam5` for multi-region).
+5. Choose **Start in test mode** (or paste the rules from `firestore.rules` into the **Rules** tab).
+6. Click **Enable**.
+
+---
+
 ## ☁️ Deploying to Vercel (One-Click Ready)
 
 AquaTrace is built from the ground up to be **100% Vercel-ready**:
@@ -222,15 +270,25 @@ AquaTrace is built from the ground up to be **100% Vercel-ready**:
 1. **Fork or Push** this repository to your GitHub account.
 2. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **"Add New Project"**.
 3. Import the `AquaTrace` repository.
-4. **Build and Output Settings**:
+4. **Environment Variables**: Add the following keys under **Project Settings** $\rightarrow$ **Environment Variables**:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB0qAhaFgNmKQeblBMTuDKBt86zkRVZE6Q
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=aquatrace-d44d7.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=aquatrace-d44d7
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=aquatrace-d44d7.firebasestorage.app
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=231501756698
+   NEXT_PUBLIC_FIREBASE_APP_ID=1:231501756698:web:5a1088e6bb9dddff2414a3
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-VZL4P4C8EM
+   ```
+5. **Build and Output Settings**:
    * **Framework Preset**: Next.js
    * **Build Command**: `pnpm run build` (or `npm run build`)
    * **Output Directory**: `.next`
    * **Install Command**: `pnpm install` (or `npm install`)
-5. Click **"Deploy"**.
+6. Click **"Deploy"**.
 
 > [!NOTE]
-> AquaTrace includes an adaptive persistence engine in `src/lib/server/db.ts`. On Vercel serverless functions, state mutations are stored in `/tmp/aquatrace_db.json` and in-memory cache, ensuring smooth execution without read-only filesystem errors.
+> AquaTrace includes an adaptive persistence engine in `src/lib/server/db.ts` alongside client-side Firebase synchronization. Even if Firebase credentials are omitted or offline, the platform seamlessly falls back to local storage and in-memory caching.
 
 ---
 
