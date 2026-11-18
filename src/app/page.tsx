@@ -683,16 +683,35 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* High-Impact Bottom Call to Action */}
-      <section className="py-20 bg-navy text-white relative overflow-hidden">
-        <div className="pointer-events-none absolute -bottom-40 right-1/4 -z-10 h-[400px] w-[600px] rounded-full bg-primary/20 blur-3xl" />
+      {/* High-Impact Bottom Call to Action with Faded Community Water Telemetry Background */}
+      <section className="relative overflow-hidden py-24 sm:py-32 bg-[#071B49] text-white">
+        {/* Faded Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/community-water-intelligence-bg.jpg"
+            alt="Community Water Infrastructure Background"
+            className="h-full w-full object-cover object-center opacity-25 filter brightness-90 contrast-110"
+          />
+          {/* Multi-layered dark navy gradient overlay to softly fade the image into the background */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#071B49] via-[#071B49]/80 to-[#071B49]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#071B49]/95 via-[#071B49]/60 to-[#071B49]/95" />
+        </div>
 
-        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8 space-y-6">
-          <h2 className="font-extrabold text-3xl sm:text-5xl tracking-tight">
+        {/* Subtle Ambient Radial Glows */}
+        <div className="pointer-events-none absolute -bottom-40 right-1/4 z-0 h-[400px] w-[600px] rounded-full bg-primary/25 blur-3xl" />
+        <div className="pointer-events-none absolute -top-40 left-1/4 z-0 h-[400px] w-[600px] rounded-full bg-aqua/15 blur-3xl" />
+
+        <div className="relative z-10 mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8 space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-aqua/30 bg-aqua/10 px-3.5 py-1 text-xs font-semibold text-aqua backdrop-blur-md">
+            <span className="h-2 w-2 rounded-full bg-aqua animate-pulse" />
+            <span>Community Water Resilience & Telemetry</span>
+          </div>
+
+          <h2 className="font-extrabold text-3xl sm:text-5xl tracking-tight text-white drop-shadow-md">
             Deploy Water Intelligence Across Your Residential Community
           </h2>
 
-          <p className="text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-200 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
             Eliminate water anxiety. Know your exact water reserves, track groundwater drawdown, verify tanker arrivals, and coordinate community conservation.
           </p>
 
@@ -707,7 +726,7 @@ export default function LandingPage() {
 
             <Link
               href="/login"
-              className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-6 py-4 text-sm font-semibold text-slate-200 hover:bg-slate-800 transition"
+              className="flex items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/80 backdrop-blur-md px-6 py-4 text-sm font-semibold text-slate-100 hover:bg-slate-700/80 hover:text-white transition"
             >
               <span>Switch Demo Persona</span>
             </Link>
