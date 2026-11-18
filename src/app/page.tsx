@@ -170,18 +170,14 @@ export default function LandingPage() {
 
           {/* Community Field Deployment & Interactive Telemetry Terminal */}
           <div className="mt-12 space-y-6 lg:mt-16">
-            {/* Real-World Field Deployment Card */}
+            {/* Real-World Field Deployment Showcase (Full Uncropped Image) */}
             <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-2xl shadow-primary/10 transition duration-300 hover:shadow-card-hover">
-              <div className="relative overflow-hidden rounded-xl bg-slate-900">
+              <div className="overflow-hidden rounded-xl bg-slate-900">
                 <img
                   src="/community-water-system-nagpur.jpg"
                   alt="A Smarter Water System for Homes - Real-World Field Deployment"
-                  className="w-full h-auto object-cover max-h-[500px]"
+                  className="w-full h-auto block rounded-xl"
                 />
-                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 rounded-full border border-white/20 bg-slate-900/80 backdrop-blur-md px-3.5 py-1 text-xs font-semibold text-white shadow-lg">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Real-World Community Deployment & Resident Empowerment</span>
-                </div>
               </div>
             </div>
 
