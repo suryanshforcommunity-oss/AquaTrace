@@ -1,10 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "AquaTrace | Community Water Intelligence & Conservation Platform",
   description: "Community-driven water resource monitoring, groundwater tracking, tanker logistics and rainwater harvesting conservation.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#071B49",
 };
 
 export default function RootLayout({

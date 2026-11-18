@@ -49,26 +49,26 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:px-6">
+    <header className="flex h-16 w-full items-center justify-between px-3 md:px-6 bg-white/95 backdrop-blur">
       {/* Left: Society Selector */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="relative min-w-0">
           <button
             onClick={() => setIsSocietyDropdownOpen(!isSocietyDropdownOpen)}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-xs font-medium text-slate-800 transition hover:bg-slate-100 md:text-sm"
+            className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 sm:px-3 text-left text-xs font-medium text-slate-800 transition hover:bg-slate-100 max-w-[130px] xs:max-w-[180px] sm:max-w-xs md:max-w-sm"
           >
-            <Building2 className="h-4 w-4 text-primary" />
-            <div>
-              <div className="font-semibold text-content-primary line-clamp-1">{selectedSociety.name}</div>
-              <div className="text-[11px] text-content-secondary hidden sm:block">
+            <Building2 className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-content-primary truncate">{selectedSociety.name}</div>
+              <div className="text-[10px] text-content-secondary hidden sm:block truncate">
                 {selectedSociety.totalApartments} Units · {selectedSociety.totalResidents} Residents
               </div>
             </div>
-            <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+            <ChevronDown className="h-3.5 w-3.5 text-slate-500 shrink-0" />
           </button>
 
           {isSocietyDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <div className="absolute left-0 mt-2 w-72 max-w-[90vw] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
               <div className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Switch Residential Layout
               </div>
@@ -83,11 +83,11 @@ export function Navbar() {
                     selectedSociety.id === soc.id ? "bg-primary-light font-semibold text-primary" : "hover:bg-slate-50 text-slate-700"
                   }`}
                 >
-                  <div>
-                    <div>{soc.name}</div>
-                    <div className="text-[10px] text-slate-500">{soc.location}</div>
+                  <div className="min-w-0 pr-2">
+                    <div className="truncate">{soc.name}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{soc.location}</div>
                   </div>
-                  {selectedSociety.id === soc.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                  {selectedSociety.id === soc.id && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
                 </button>
               ))}
             </div>
@@ -95,7 +95,7 @@ export function Navbar() {
         </div>
 
         {/* Live IoT Status Badge */}
-        <div className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 lg:flex">
+        <div className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 lg:flex shrink-0">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -104,11 +104,12 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Center: Emergency Cutoff Banner if Active */}
+      {/* Center: Emergency Cutoff Banner if Active (Visible on Mobile & Desktop) */}
       {isEmergencyCutoffActive && (
-        <div className="hidden animate-pulse items-center gap-2 rounded-lg bg-rose-600 px-3 py-1 text-xs font-bold text-white md:flex">
-          <Flame className="h-4 w-4" />
-          <span>MAIN VALVE ISOLATED</span>
+        <div className="flex animate-pulse items-center gap-1.5 rounded-lg bg-rose-600 px-2 py-1 text-[11px] sm:text-xs font-bold text-white shadow-sm shrink-0">
+          <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+          <span className="hidden sm:inline">MAIN VALVE ISOLATED</span>
+          <span className="sm:hidden">ISOLATED</span>
           {currentRole === "admin" ? (
             <button
               onClick={toggleEmergencyCutoff}
@@ -117,27 +118,27 @@ export function Navbar() {
               Reset
             </button>
           ) : (
-            <span className="text-[10px] text-white/80">(Admin Only)</span>
+            <span className="text-[10px] text-white/80">(Admin)</span>
           )}
         </div>
       )}
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* Role Switcher */}
         <div className="relative">
           <button
             onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${roleMeta[currentRole].color}`}
+            className={`flex items-center gap-1.5 rounded-full border px-2 sm:px-2.5 py-1 text-xs font-medium transition ${roleMeta[currentRole].color}`}
             title="Switch demo persona to test role-based UI"
           >
-            {React.createElement(roleMeta[currentRole].icon, { className: "h-3.5 w-3.5" })}
-            <span className="hidden sm:inline">{roleMeta[currentRole].label}</span>
-            <ChevronDown className="h-3 w-3 opacity-70" />
+            {React.createElement(roleMeta[currentRole].icon, { className: "h-3.5 w-3.5 shrink-0" })}
+            <span className="hidden md:inline">{roleMeta[currentRole].label}</span>
+            <ChevronDown className="h-3 w-3 opacity-70 shrink-0" />
           </button>
 
           {isRoleDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <div className="absolute right-0 mt-2 w-64 max-w-[90vw] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl z-50">
               <div className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Switch Role Persona
               </div>
@@ -154,11 +155,11 @@ export function Navbar() {
                       currentRole === r ? "bg-slate-100 font-semibold text-content-primary" : "hover:bg-slate-50 text-slate-600"
                     }`}
                   >
-                    {React.createElement(meta.icon, { className: "h-4 w-4 text-primary" })}
-                    <div className="flex-1">
-                      <div>{meta.label}</div>
+                    {React.createElement(meta.icon, { className: "h-4 w-4 text-primary shrink-0" })}
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate">{meta.label}</div>
                     </div>
-                    {currentRole === r && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                    {currentRole === r && <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />}
                   </button>
                 );
               })}
@@ -189,19 +190,19 @@ export function Navbar() {
         <div className="relative">
           <button
             onClick={() => setIsAlertsOpen(!isAlertsOpen)}
-            className="relative rounded-lg p-2 text-slate-600 transition hover:bg-slate-100"
+            className="relative rounded-lg p-1.5 sm:p-2 text-slate-600 transition hover:bg-slate-100"
             aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
             {unreadAlerts.length > 0 && (
-              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange text-[10px] font-bold text-white shadow-sm">
+              <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange text-[10px] font-bold text-white shadow-sm">
                 {unreadAlerts.length}
               </span>
             )}
           </button>
 
           {isAlertsOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl z-50">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-content-primary text-sm">System Alerts</span>

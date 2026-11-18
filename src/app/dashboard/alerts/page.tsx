@@ -112,7 +112,7 @@ export default function AlertsPage() {
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-card">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <span className="text-xs font-bold text-content-primary">Filter Severity:</span>
           {["all", "danger", "warning", "info", "success"].map((sev) => (
             <button

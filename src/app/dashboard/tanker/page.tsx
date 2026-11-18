@@ -237,10 +237,10 @@ export default function TankerPage() {
       </div>
 
       {/* Tabs: Active Schedules vs History */}
-      <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-100/70 p-1 w-fit">
+      <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-100/70 p-1 w-full sm:w-fit overflow-x-auto">
         <button
           onClick={() => setActiveTab("active")}
-          className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+          className={`rounded-md px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
             activeTab === "active"
               ? "bg-white text-slate-900 shadow-sm"
               : "text-slate-600 hover:text-slate-900"
@@ -251,7 +251,7 @@ export default function TankerPage() {
 
         <button
           onClick={() => setActiveTab("history")}
-          className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+          className={`rounded-md px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
             activeTab === "history"
               ? "bg-white text-slate-900 shadow-sm"
               : "text-slate-600 hover:text-slate-900"

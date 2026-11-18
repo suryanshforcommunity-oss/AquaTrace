@@ -372,10 +372,10 @@ export default function MainDashboardPage() {
 
       {/* Segmented View Navigation (For Admins / Power Users) */}
       {currentRole === "admin" && (
-        <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-100/70 p-1 w-fit">
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-100/70 p-1 w-full sm:w-fit overflow-x-auto">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
               activeTab === "overview"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -386,7 +386,7 @@ export default function MainDashboardPage() {
 
           <button
             onClick={() => setActiveTab("sensors")}
-            className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
               activeTab === "sensors"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
@@ -397,24 +397,24 @@ export default function MainDashboardPage() {
 
           <button
             onClick={() => setActiveTab("water_left")}
-            className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
               activeTab === "water_left"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Sump Reserves &amp; Runaway ({daysCalc.formattedDays})
+            Sump Reserves ({daysCalc.formattedDays})
           </button>
 
           <button
             onClick={() => setActiveTab("tankers")}
-            className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition ${
               activeTab === "tankers"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Tanker Logistics &amp; History ({tankerSchedules.length})
+            Tankers ({tankerSchedules.length})
           </button>
         </div>
       )}

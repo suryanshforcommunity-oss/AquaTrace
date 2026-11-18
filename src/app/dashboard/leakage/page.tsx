@@ -287,7 +287,7 @@ export default function LeakagePage() {
                         }`}
                       />
                       <span
-                        className={`mt-1.5 text-[10px] font-medium ${
+                        className={`mt-1.5 text-[9px] sm:text-[10px] font-medium truncate w-full ${
                           currentStep >= s.step ? "text-primary font-semibold" : "text-slate-400"
                         }`}
                       >
