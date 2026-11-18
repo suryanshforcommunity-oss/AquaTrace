@@ -49,6 +49,11 @@ export default function WaterAvailabilityPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentRole !== "admin" && currentRole !== "maintenance") {
+      alert("Permission Denied: Only Society Administrators or Maintenance Staff can log bulk water intake.");
+      return;
+    }
+
     addAvailabilityLog({
       societyId: selectedSociety.id,
       date: new Date().toISOString().split("T")[0],

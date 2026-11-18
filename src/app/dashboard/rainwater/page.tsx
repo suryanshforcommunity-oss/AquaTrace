@@ -78,6 +78,10 @@ export default function RainwaterPage() {
 
   const handleMaintenanceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentRole !== "admin" && currentRole !== "maintenance") {
+      alert("Permission Denied: Only Administrators or Maintenance Staff can submit inspection checklists.");
+      return;
+    }
     const allPassed =
       guttersCleared && firstFlushDiverted && filterMeshCleaned && pipeJointsInspected && sedimentFlushed;
     addMaintenanceLog({
@@ -98,6 +102,10 @@ export default function RainwaterPage() {
 
   const handleRegisterUnit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentRole !== "admin") {
+      alert("Permission Denied: Only Society Administrators can register new catchment units.");
+      return;
+    }
     const potential = Math.round(newRoofArea * 850 * 0.85 * 0.9);
     addRwhUnit({
       societyId: selectedSociety.id,

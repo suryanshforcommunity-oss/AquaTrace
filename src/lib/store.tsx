@@ -209,6 +209,17 @@ function mergeTankerSchedules(base: TankerSchedule[], overlay: TankerSchedule[])
   return Array.from(map.values());
 }
 
+// Safe JSON parse helper to prevent any unhandled syntax or type errors from corrupted storage
+function safeJsonParse<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    const val = JSON.parse(raw);
+    return val !== null && val !== undefined ? val : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Helper function to sync mutations to the local backend API
 async function syncToBackend(action: string, data: any) {
   try {
@@ -267,44 +278,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const savedSociety = localStorage.getItem(`${STORAGE_KEY_PREFIX}society`);
       if (savedSociety) {
-        try { setSelectedSocietyState(JSON.parse(savedSociety)); } catch {}
+        setSelectedSocietyState(safeJsonParse(savedSociety, mockSocieties[0]));
       }
 
       const savedLeaks = localStorage.getItem(`${STORAGE_KEY_PREFIX}leaks`);
-      if (savedLeaks) setLeakageReports(JSON.parse(savedLeaks));
+      if (savedLeaks) setLeakageReports(safeJsonParse(savedLeaks, mockLeakageReports));
 
       const savedTankers = localStorage.getItem(`${STORAGE_KEY_PREFIX}tankers`);
-      if (savedTankers) setTankerSchedules(JSON.parse(savedTankers));
+      if (savedTankers) setTankerSchedules(safeJsonParse(savedTankers, mockTankerSchedules));
 
       const savedAvail = localStorage.getItem(`${STORAGE_KEY_PREFIX}avail`);
-      if (savedAvail) setAvailabilityLogs(JSON.parse(savedAvail));
+      if (savedAvail) setAvailabilityLogs(safeJsonParse(savedAvail, mockAvailabilityLogs));
 
       const savedSavings = localStorage.getItem(`${STORAGE_KEY_PREFIX}savings`);
-      if (savedSavings) setWaterSavingLogs(JSON.parse(savedSavings));
+      if (savedSavings) setWaterSavingLogs(safeJsonParse(savedSavings, mockWaterSavingLogs));
 
       const savedGW = localStorage.getItem(`${STORAGE_KEY_PREFIX}groundwater`);
-      if (savedGW) setGroundwaterReadings(JSON.parse(savedGW));
+      if (savedGW) setGroundwaterReadings(safeJsonParse(savedGW, mockGroundwaterReadings));
 
       const savedMaintenance = localStorage.getItem(`${STORAGE_KEY_PREFIX}maintenance`);
-      if (savedMaintenance) setMaintenanceLogs(JSON.parse(savedMaintenance));
+      if (savedMaintenance) setMaintenanceLogs(safeJsonParse(savedMaintenance, mockMaintenanceLogs));
 
       const savedRwh = localStorage.getItem(`${STORAGE_KEY_PREFIX}rwh`);
-      if (savedRwh) setRwhUnits(JSON.parse(savedRwh));
+      if (savedRwh) setRwhUnits(safeJsonParse(savedRwh, mockRwhUnits));
 
       const savedAlerts = localStorage.getItem(`${STORAGE_KEY_PREFIX}alerts`);
-      if (savedAlerts) setAlerts(JSON.parse(savedAlerts));
+      if (savedAlerts) setAlerts(safeJsonParse(savedAlerts, mockAlerts));
 
       const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
-      if (savedStorage) setCurrentStorageLiters(Number(savedStorage));
+      if (savedStorage) {
+        const parsedNum = Number(savedStorage);
+        if (!isNaN(parsedNum) && parsedNum > 0) setCurrentStorageLiters(parsedNum);
+      }
 
       const savedEmergency = localStorage.getItem(`${STORAGE_KEY_PREFIX}emergency`);
       if (savedEmergency !== null) setIsEmergencyCutoffActive(savedEmergency === "true");
 
       const savedQuality = localStorage.getItem(`${STORAGE_KEY_PREFIX}quality`);
-      if (savedQuality) setWaterQualityReadings(JSON.parse(savedQuality));
+      if (savedQuality) setWaterQualityReadings(safeJsonParse(savedQuality, mockWaterQualityReadings));
 
       const savedForum = localStorage.getItem(`${STORAGE_KEY_PREFIX}forum`);
-      if (savedForum) setForumPosts(JSON.parse(savedForum));
+      if (savedForum) setForumPosts(safeJsonParse(savedForum, mockForumPosts));
     } catch (e) {
       console.warn("LocalStorage initial read notice:", e);
     }
@@ -489,8 +503,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Emergency Cutoff
+  // Emergency Cutoff (Strictly Restricted to Administrator)
   const toggleEmergencyCutoff = () => {
+    if (currentRole !== "admin") {
+      alert("Permission Denied: Only Society Administrators can toggle the Emergency Master Valve Isolation.");
+      return;
+    }
+
     setIsEmergencyCutoffActive((prev) => {
       const next = !prev;
       try {

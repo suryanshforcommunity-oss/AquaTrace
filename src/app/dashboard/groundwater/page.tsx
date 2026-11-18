@@ -74,6 +74,11 @@ export default function GroundwaterPage() {
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentRole !== "admin" && currentRole !== "maintenance") {
+      alert("Permission Denied: Only Administrators or Maintenance Technicians can submit manual dip-tape readings.");
+      return;
+    }
+
     const calculatedElevation = +(currentBorewell.referenceDatumMsl - manualDepth).toFixed(2);
     const isStaff = currentRole === "admin" || currentRole === "maintenance";
     addGroundwaterReading({

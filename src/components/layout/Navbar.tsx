@@ -109,12 +109,16 @@ export function Navbar() {
         <div className="hidden animate-pulse items-center gap-2 rounded-lg bg-rose-600 px-3 py-1 text-xs font-bold text-white md:flex">
           <Flame className="h-4 w-4" />
           <span>MAIN VALVE ISOLATED</span>
-          <button
-            onClick={toggleEmergencyCutoff}
-            className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] hover:bg-white/30"
-          >
-            Reset
-          </button>
+          {currentRole === "admin" ? (
+            <button
+              onClick={toggleEmergencyCutoff}
+              className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] hover:bg-white/30"
+            >
+              Reset
+            </button>
+          ) : (
+            <span className="text-[10px] text-white/80">(Admin Only)</span>
+          )}
         </div>
       )}
 
@@ -162,14 +166,24 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Quick Log Link */}
-        <Link
-          href="/dashboard/water-availability"
-          className="hidden items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-hover sm:flex"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Log Supply</span>
-        </Link>
+        {/* Quick Action Link Differentiated by Role */}
+        {currentRole === "resident" ? (
+          <Link
+            href="/dashboard/leakage"
+            className="hidden items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:flex"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>Report Leak</span>
+          </Link>
+        ) : (
+          <Link
+            href="/dashboard/water-availability"
+            className="hidden items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-hover sm:flex"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Log Supply</span>
+          </Link>
+        )}
 
         {/* Notification Bell */}
         <div className="relative">

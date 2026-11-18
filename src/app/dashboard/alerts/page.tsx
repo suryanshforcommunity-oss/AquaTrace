@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function AlertsPage() {
-  const { alerts, markAlertRead, dismissAlert, triggerAlert, selectedSociety } = useAppStore();
+  const { alerts, markAlertRead, dismissAlert, triggerAlert, selectedSociety, currentRole } = useAppStore();
 
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
@@ -39,17 +39,24 @@ export default function AlertsPage() {
 
   const handleCreateAlert = (e: React.FormEvent) => {
     e.preventDefault();
+    // Guard: Only administrators can manually issue or broadcast society alerts
+    if (currentRole !== "admin") {
+      alert("Permission Denied: Only Society Administrators can broadcast official alerts.");
+      return;
+    }
+
     triggerAlert({
       societyId: selectedSociety.id,
       title: alertTitle,
       message: alertMessage,
       severity: alertSeverity,
-      source: "Operator Manual Console",
-      recommendedAction: recommendedAction || "Review telemetry thresholds.",
+      source: "Society Admin Broadcast Console",
+      recommendedAction: recommendedAction || "Review telemetry thresholds and follow advisory instructions.",
     });
     setIsTestModalOpen(false);
     setAlertTitle("");
     setAlertMessage("");
+    setRecommendedAction("");
   };
 
   const markAllAsRead = () => {
@@ -70,11 +77,13 @@ export default function AlertsPage() {
             </span>
           </div>
           <p className="mt-1 text-xs text-content-secondary max-w-2xl">
-            Real-time threshold surveillance for low sump storage, borewell drawdown, tanker delays, and pipe ruptures.
+            {currentRole === "admin"
+              ? "Surveillance dashboard & broadcast console. Issue emergency water advisories or manage threshold triggers."
+              : "Official residential community noticeboard. Real-time advisories for low storage, maintenance outages, and emergency alerts."}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={markAllAsRead}
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-content-secondary hover:bg-slate-50 transition"
@@ -82,13 +91,22 @@ export default function AlertsPage() {
             <CheckCheck className="h-4 w-4 text-emerald-600" />
             <span>Mark All as Read</span>
           </button>
-          <button
-            onClick={() => setIsTestModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Simulate Threshold Alert</span>
-          </button>
+
+          {/* Role Gate: Only Admin Can Issue Manual Alerts */}
+          {currentRole === "admin" ? (
+            <button
+              onClick={() => setIsTestModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover transition"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Broadcast Community Alert</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+              <ShieldAlert className="h-4 w-4 text-slate-400" />
+              <span>Broadcasts Managed by Estate Admin</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -190,13 +208,15 @@ export default function AlertsPage() {
                       <ExternalLink className="h-3 w-3" />
                     </Link>
                   )}
-                  <button
-                    onClick={() => dismissAlert(alert.id)}
-                    className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50"
-                    title="Dismiss alert"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {currentRole === "admin" && (
+                    <button
+                      onClick={() => dismissAlert(alert.id)}
+                      className="rounded-lg p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-50"
+                      title="Dismiss alert (Admin only)"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -204,13 +224,14 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {/* Modal: Test Trigger Alert */}
-      <Modal
-        isOpen={isTestModalOpen}
-        onClose={() => setIsTestModalOpen(false)}
-        title="Simulate Event / Threshold Alert"
-        subtitle="Test notification triggers for low water, sensor anomalies or delays"
-      >
+      {/* Modal: Broadcast Community Alert (Restricted to Admin) */}
+      {currentRole === "admin" && (
+        <Modal
+          isOpen={isTestModalOpen}
+          onClose={() => setIsTestModalOpen(false)}
+          title="Broadcast Official Community Water Alert"
+          subtitle="Issue an official notice to all residents and facility staff across Greenwood Heights"
+        >
         <form onSubmit={handleCreateAlert} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-content-primary mb-1">Alert Headline</label>
@@ -272,11 +293,12 @@ export default function AlertsPage() {
               type="submit"
               className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover shadow-sm"
             >
-              Trigger Alert
+              Broadcast Alert
             </button>
           </div>
         </form>
       </Modal>
+      )}
     </div>
   );
 }
