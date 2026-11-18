@@ -28,48 +28,108 @@
   "currentStorageLiters": 142500,
   "societies": [
     {
+      "id": "soc_nagpur_bloomdale",
+      "name": "Mahindra Bloomdale Township RWA",
+      "location": "Sector 20, MIHAN SEZ, Nagpur, MH 441108",
+      "totalApartments": 850,
+      "totalResidents": 3200,
+      "dailyWaterQuotaLiters": 432000,
+      "usableStorageCapacityLiters": 650000,
+      "borewellCount": 5,
+      "rwhUnitCount": 8,
+      "coordinates": {
+        "lat": 21.0425,
+        "lng": 79.0321
+      }
+    },
+    {
+      "id": "soc_nagpur_godrej_anandam",
+      "name": "Godrej Anandam Luxury Residential Complex",
+      "location": "Model Mill Compound, Ganeshpeth, Nagpur, MH 440018",
+      "totalApartments": 680,
+      "totalResidents": 2450,
+      "dailyWaterQuotaLiters": 330000,
+      "usableStorageCapacityLiters": 480000,
+      "borewellCount": 3,
+      "rwhUnitCount": 6,
+      "coordinates": {
+        "lat": 21.1448,
+        "lng": 79.0963
+      }
+    },
+    {
+      "id": "soc_nagpur_vrindavan",
+      "name": "Vrindavan City Integrated Mega Township",
+      "location": "National Highway 44, Jamtha, Nagpur, MH 441122",
+      "totalApartments": 1400,
+      "totalResidents": 5600,
+      "dailyWaterQuotaLiters": 756000,
+      "usableStorageCapacityLiters": 1100000,
+      "borewellCount": 8,
+      "rwhUnitCount": 12,
+      "coordinates": {
+        "lat": 21.0028,
+        "lng": 79.0287
+      }
+    },
+    {
+      "id": "soc_nagpur_shiv_kailasa",
+      "name": "Shiv Kailasa Resident Welfare Association",
+      "location": "Beltarodi Road, Manish Nagar, Nagpur, MH 440037",
+      "totalApartments": 480,
+      "totalResidents": 1820,
+      "dailyWaterQuotaLiters": 245000,
+      "usableStorageCapacityLiters": 360000,
+      "borewellCount": 4,
+      "rwhUnitCount": 4,
+      "coordinates": {
+        "lat": 21.0872,
+        "lng": 79.0765
+      }
+    },
+    {
+      "id": "soc_nagpur_sandesh_city",
+      "name": "Sandesh City Township RWA",
+      "location": "Opp. VCA Stadium, Jamtha, Wardha Road, Nagpur, MH 441108",
+      "totalApartments": 920,
+      "totalResidents": 3450,
+      "dailyWaterQuotaLiters": 465000,
+      "usableStorageCapacityLiters": 700000,
+      "borewellCount": 6,
+      "rwhUnitCount": 8,
+      "coordinates": {
+        "lat": 20.9984,
+        "lng": 79.0255
+      }
+    },
+    {
+      "id": "soc_nagpur_empress_city",
+      "name": "Empress City Premium Residential Towers",
+      "location": "Near Gandhi Sagar Lake, Cotton Market, Nagpur, MH 440018",
+      "totalApartments": 550,
+      "totalResidents": 2100,
+      "dailyWaterQuotaLiters": 285000,
+      "usableStorageCapacityLiters": 400000,
+      "borewellCount": 3,
+      "rwhUnitCount": 5,
+      "coordinates": {
+        "lat": 21.1465,
+        "lng": 79.0912
+      }
+    },
+    {
       "id": "soc_greenwood_01",
-      "name": "Greenwood Heights RWA (Block A, B & C)",
-      "location": "Sarjapur-Bellandur Corridor, Bangalore, KA",
+      "name": "Greenwood Enclave RWA (Mankapur)",
+      "location": "Koradi Road, Mankapur, Nagpur, MH 440030",
       "totalApartments": 420,
       "totalResidents": 1650,
-      "dailyWaterQuotaLiters": 175000,
-      "usableStorageCapacityLiters": 240000,
+      "dailyWaterQuotaLiters": 220000,
+      "usableStorageCapacityLiters": 320000,
       "borewellCount": 3,
       "rwhUnitCount": 4,
       "coordinates": {
-        "lat": 12.9234,
-        "lng": 77.6842
-      }
-    },
-    {
-      "id": "soc_palm_meadows",
-      "name": "Palm Meadows Residents Association",
-      "location": "Whitefield, Bangalore, KA",
-      "totalApartments": 310,
-      "totalResidents": 1220,
-      "dailyWaterQuotaLiters": 135000,
-      "usableStorageCapacityLiters": 190000,
-      "borewellCount": 2,
-      "rwhUnitCount": 3,
-      "coordinates": {
-        "lat": 12.9698,
-        "lng": 77.7499
-      }
-    },
-    {
-      "id": "soc_silver_oak",
-      "name": "Silver Oak Community Layout",
-      "location": "Electronic City Phase 1, Bangalore, KA",
-      "totalApartments": 280,
-      "totalResidents": 1040,
-      "dailyWaterQuotaLiters": 115000,
-      "usableStorageCapacityLiters": 160000,
-      "borewellCount": 2,
-      "rwhUnitCount": 2,
-      "coordinates": {
-        "lat": 12.8452,
-        "lng": 77.6602
+        "lat": 21.1982,
+        "lng": 79.0834
       }
     }
   ],
