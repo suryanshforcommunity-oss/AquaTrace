@@ -120,10 +120,14 @@ export default function MainDashboardPage() {
   );
   const hoursLeft = Math.max(1, Math.round(totalWaterAvailableLiters / (avgDailyConsumption / 24)));
 
+  const scheduledIncomingSupplyLiters = societyTankers
+    .filter((t) => t.status === "scheduled" || t.status === "en_route")
+    .reduce((sum, t) => sum + (t.plannedQuantityLiters || 0), 0);
+
   const daysCalc = calculateDaysRemaining({
     usableStoredWaterLiters: totalWaterAvailableLiters,
     averageDailyConsumptionLiters: avgDailyConsumption,
-    scheduledIncomingSupplyLiters: 12000,
+    scheduledIncomingSupplyLiters: scheduledIncomingSupplyLiters > 0 ? scheduledIncomingSupplyLiters : 12000,
   });
 
   const primaryBorewell = societyBorewells.find((b) => b.status === "active") || societyBorewells[0];
@@ -149,116 +153,102 @@ export default function MainDashboardPage() {
     { date: "20 Nov (Fc)", available: Math.round(cap * 0.73), forecastDemand: Math.round(quota * 1.10) },
   ];
 
-  // Chart 2: Inverted Groundwater Hydrograph (m below reference datum)
+  // Chart 2: Dynamic Inverted Groundwater Hydrograph tied to active society borewells
+  const bw1 = societyBorewells[0];
+  const bw2 = societyBorewells[1] || bw1;
+  const d1 = bw1 ? bw1.currentDepthMeters : 18.2;
+  const d2 = bw2 ? bw2.currentDepthMeters : 17.1;
+
   const groundwaterChartData = [
-    { date: "15 Oct", well2: 16.9, well1: 18.2, safeLine: 15.0, warningLine: 20.0 },
-    { date: "25 Oct", well2: 17.3, well1: 18.6, safeLine: 15.0, warningLine: 20.0 },
-    { date: "05 Nov", well2: 17.65, well1: 19.1, safeLine: 15.0, warningLine: 20.0 },
-    { date: "10 Nov", well2: 17.8, well1: 19.3, safeLine: 15.0, warningLine: 20.0 },
-    { date: "12 Nov", well2: 17.92, well1: 19.4, safeLine: 15.0, warningLine: 20.0 },
-    { date: "14 Nov", well2: 18.15, well1: 19.6, safeLine: 15.0, warningLine: 20.0 },
-    { date: "16 Nov", well2: 18.35, well1: 19.7, safeLine: 15.0, warningLine: 20.0 },
-    { date: "17 Nov", well2: 18.4, well1: 19.8, safeLine: 15.0, warningLine: 20.0 },
+    { date: "11 Nov", well2: +(d2 - 0.7).toFixed(1), well1: +(d1 - 0.8).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "12 Nov", well2: +(d2 - 0.5).toFixed(1), well1: +(d1 - 0.6).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "13 Nov", well2: +(d2 - 0.4).toFixed(1), well1: +(d1 - 0.5).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "14 Nov", well2: +(d2 - 0.3).toFixed(1), well1: +(d1 - 0.3).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "15 Nov", well2: +(d2 - 0.2).toFixed(1), well1: +(d1 - 0.2).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "16 Nov", well2: +(d2 - 0.1).toFixed(1), well1: +(d1 - 0.1).toFixed(1), safeLine: 15.0, warningLine: 20.0 },
+    { date: "17 Nov", well2: +d2.toFixed(1), well1: +d1.toFixed(1), safeLine: 15.0, warningLine: 20.0 },
   ];
 
-  // Chart 3: Water Source Distribution
-  const sourcePieData = [
+  // Chart 3: Water Source Distribution (Calculated dynamically from availability logs)
+  const currentSocietyLogs = availabilityLogs.filter((l) => l.societyId === selectedSociety.id);
+  const municipalLiters = currentSocietyLogs.filter((l) => l.source === "municipal").reduce((s, l) => s + l.quantityLiters, 0);
+  const borewellLiters = currentSocietyLogs.filter((l) => l.source === "borewell").reduce((s, l) => s + l.quantityLiters, 0);
+  const tankerLiters = currentSocietyLogs.filter((l) => l.source === "tanker").reduce((s, l) => s + l.quantityLiters, 0);
+  const rwhLiters = currentSocietyLogs.filter((l) => l.source === "rainwater").reduce((s, l) => s + l.quantityLiters, 0);
+
+  const totalLogged = municipalLiters + borewellLiters + tankerLiters + rwhLiters;
+  const sourcePieData = totalLogged > 0 ? [
+    { name: "Municipal Supply", value: Math.round((municipalLiters / totalLogged) * 100), color: "#073BCE" },
+    { name: "Borewells", value: Math.round((borewellLiters / totalLogged) * 100), color: "#1769E0" },
+    { name: "Private Tankers", value: Math.round((tankerLiters / totalLogged) * 100), color: "#FF6900" },
+    { name: "Rainwater Harvesting", value: Math.max(1, 100 - Math.round((municipalLiters / totalLogged) * 100) - Math.round((borewellLiters / totalLogged) * 100) - Math.round((tankerLiters / totalLogged) * 100)), color: "#20B8C4" },
+  ] : [
     { name: "Municipal Supply", value: 45, color: "#073BCE" },
     { name: "Borewells", value: 32, color: "#1769E0" },
     { name: "Private Tankers", value: 18, color: "#FF6900" },
     { name: "Rainwater Harvesting", value: 5, color: "#20B8C4" },
   ];
 
-  // Sensor reading records for the All Sensors view
+  // Sensor reading records dynamically generated for active society
   const sensorReadingsList = [
     {
-      id: "sn_001",
-      name: "Borewell #2 Hydrostatic Transducer",
-      location: "Clubhouse Borehole PBW-02",
+      id: `sn_${selectedSociety.id}_01`,
+      name: `${primaryBorewell ? primaryBorewell.name : "Borewell"} Transducer`,
+      location: `${selectedSociety.name} Main Borehole PBW-01`,
       type: "groundwater_depth",
-      reading: "18.4 m",
-      unit: "m below casing (+920.4m MSL)",
-      status: "active",
+      reading: `${primaryBorewell ? primaryBorewell.currentDepthMeters.toFixed(1) : "18.4"} m`,
+      unit: `m below casing (+${primaryBorewell?.referenceDatumMsl || 920.4}m MSL)`,
+      status: primaryBorewell?.status === "active" ? "active" : "resting",
       signal: "-68 dBm",
       battery: "Hardwired 24V",
       protocol: "RS485 Modbus / ESP32",
-      lastUpdated: "4 mins ago",
-      threshold: "Safe: <15m · Crit: >20m",
-      warningLevel: "caution",
+      lastUpdated: "Just now",
+      threshold: `Safe: <${primaryBorewell?.swlMeters || 15}m · Crit: >${primaryBorewell?.pwlMeters || 20}m`,
+      warningLevel: (primaryBorewell?.currentDepthMeters || 18) > (primaryBorewell?.pwlMeters || 20) ? "critical" : (primaryBorewell?.currentDepthMeters || 18) > (primaryBorewell?.swlMeters || 15) ? "caution" : "normal",
     },
-    {
-      id: "sn_002",
-      name: "Borewell #1 Piezoresistive Sensor",
-      location: "North Block Borehole PBW-01",
+    ...(bw2 && bw2.id !== primaryBorewell?.id ? [{
+      id: `sn_${selectedSociety.id}_02`,
+      name: `${bw2.name} Hydrostatic Sensor`,
+      location: `${selectedSociety.name} Auxiliary Borehole PBW-02`,
       type: "groundwater_depth",
-      reading: "19.8 m",
-      unit: "m below casing (+918.2m MSL)",
-      status: "resting",
+      reading: `${bw2.currentDepthMeters.toFixed(1)} m`,
+      unit: `m below casing (+${bw2.referenceDatumMsl || 920}m MSL)`,
+      status: bw2.status === "active" ? "active" : "resting",
       signal: "-72 dBm",
       battery: "Hardwired 24V",
       protocol: "RS485 Modbus / ESP32",
-      lastUpdated: "12 mins ago",
-      threshold: "Resting cycle active (90 mins)",
-      warningLevel: "warning",
-    },
+      lastUpdated: "8 mins ago",
+      threshold: `Safe: <${bw2.swlMeters}m · Crit: >${bw2.pwlMeters}m`,
+      warningLevel: bw2.currentDepthMeters > bw2.pwlMeters ? "critical" : "caution",
+    }] : []),
     {
-      id: "sn_003",
-      name: "Underground Sump 1 Ultrasonic Transmitter",
-      location: "Central Basement Sump (Potable)",
+      id: `sn_${selectedSociety.id}_sump1`,
+      name: `Primary Sump Ultrasonic Sensor`,
+      location: `${selectedSociety.name} Central Water Sump`,
       type: "tank_level",
-      reading: "142,500 L",
-      unit: "78% capacity (4.2m water column)",
+      reading: `${totalWaterAvailableLiters.toLocaleString()} L`,
+      unit: `${storageCapacityPercent}% capacity`,
       status: "active",
       signal: "-64 dBm",
       battery: "96% LiFePO4",
       protocol: "HTTPS REST / ESP32",
       lastUpdated: "1 min ago",
-      threshold: "Dead storage: 15,000 L excluded",
-      warningLevel: "normal",
+      threshold: `Max capacity: ${(selectedSociety.usableStorageCapacityLiters || 500000).toLocaleString()} L`,
+      warningLevel: storageCapacityPercent < 25 ? "critical" : storageCapacityPercent < 50 ? "caution" : "normal",
     },
     {
-      id: "sn_004",
-      name: "Underground Sump 2 (Secondary Storage)",
-      location: "East Wing Sump",
-      type: "tank_level",
-      reading: "45,000 L",
-      unit: "62% capacity (2.8m water column)",
-      status: "active",
-      signal: "-70 dBm",
-      battery: "98% LiFePO4",
-      protocol: "HTTPS REST / ESP32",
-      lastUpdated: "5 mins ago",
-      threshold: "Direct intake from Tankers",
-      warningLevel: "normal",
-    },
-    {
-      id: "sn_005",
-      name: "Main Line Electromagnetic Flowmeter",
-      location: "Society Master Gate Intake",
+      id: `sn_${selectedSociety.id}_flow01`,
+      name: `Main Intake Ultrasonic Flowmeter`,
+      location: `Gate Delivery Line & Manifold`,
       type: "flow_rate",
       reading: "84 LPM",
-      unit: "28,400 L daily accumulated",
+      unit: "Liters per minute (Calibrated)",
       status: "active",
       signal: "-66 dBm",
-      battery: "Mains Powered",
-      protocol: "MQTT / TLS",
-      lastUpdated: "30 secs ago",
-      threshold: "Peak limit: 120 LPM",
-      warningLevel: "normal",
-    },
-    {
-      id: "sn_006",
-      name: "Water Quality Online Screening Sensor",
-      location: "Potable Delivery Header",
-      type: "water_quality",
-      reading: "TDS 342 ppm · Turb 1.8 NTU · pH 7.4",
-      unit: "Within standard non-potability screening limits",
-      status: "active",
-      signal: "-69 dBm",
-      battery: "Hardwired 12V",
-      protocol: "RS485 Modbus / ESP32",
-      lastUpdated: "8 mins ago",
-      threshold: "Lab test recommended for drinking",
+      battery: "Grid Powered + UPS",
+      protocol: "MQTT / TLS Gate Controller",
+      lastUpdated: "Just now",
+      threshold: "Operational limit: 120 LPM",
       warningLevel: "normal",
     },
   ];
@@ -472,7 +462,7 @@ export default function MainDashboardPage() {
               </div>
 
               <p className="text-[11px] text-slate-400">
-                Central sumps are receiving steady supply from Cauvery municipal line and society borewells.
+                Central sumps are receiving steady supply from Nagpur Municipal Corporation (NMC) pipeline and society borewells.
               </p>
             </div>
 
@@ -521,19 +511,19 @@ export default function MainDashboardPage() {
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  En Route (24m)
+                  {nextTanker ? (nextTanker.status === "en_route" ? "En Route (25m)" : "Scheduled") : "Confirmed"}
                 </span>
               </div>
 
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold tracking-tight text-slate-900 font-sans tabular-nums">
-                    18:00 IST
+                    {nextTanker ? (nextTanker.scheduledTimeWindow.split("-")[0] || nextTanker.scheduledTimeWindow) : "17:30 IST"}
                   </span>
                   <span className="text-xs font-medium text-slate-500">Today</span>
                 </div>
                 <div className="mt-1 text-xs text-slate-600">
-                  Cauvery Express Logistics · <strong>6,000 Litres Potable</strong>
+                  {nextTanker ? nextTanker.vendorName : "Vidarbha Water Carrier Logistics"} · <strong>{nextTanker ? (nextTanker.plannedQuantityLiters || 12000).toLocaleString() : "12,000"} Litres</strong>
                 </div>
               </div>
 

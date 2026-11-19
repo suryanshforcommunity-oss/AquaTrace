@@ -74,6 +74,8 @@ interface AppContextType {
   // Live Storage
   currentStorageLiters: number;
   setCurrentStorageLiters: (val: number | ((prev: number) => number)) => void;
+  societyStorageMap: Record<string, number>;
+  increaseSocietyStorage: (societyId: string, addedLiters: number) => void;
 
   // Water Availability
   availabilityLogs: WaterAvailabilityLog[];
@@ -252,14 +254,24 @@ const combinedLeakageReports = [...mockLeakageReports, ...getAllSocietiesLeakage
 const combinedWaterSavingLogs = [...mockWaterSavingLogs, ...getAllSocietiesWaterSavingLogs()];
 const combinedAlerts = [...mockAlerts, ...getAllSocietiesAlerts()];
 
+function buildDefaultSocietyStorage(): Record<string, number> {
+  const initialMap: Record<string, number> = {};
+  for (const soc of mockSocieties) {
+    initialMap[soc.id] = Math.round((soc.usableStorageCapacityLiters || 320000) * 0.78);
+  }
+  return initialMap;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<PlatformConfig>(defaultPlatformConfig);
   const [currentRole, setCurrentRoleState] = useState<UserRole>("resident");
   const [selectedSociety, setSelectedSocietyState] = useState<Society>(mockSocieties[0]);
   const [isEmergencyCutoffActive, setIsEmergencyCutoffActive] = useState<boolean>(false);
-  const [currentStorageLiters, setCurrentStorageLiters] = useState<number>(
-    Math.round((mockSocieties[0].usableStorageCapacityLiters || 320000) * 0.78)
-  );
+  const [societyStorageMap, setSocietyStorageMap] = useState<Record<string, number>>(buildDefaultSocietyStorage);
+
+  const currentStorageLiters =
+    societyStorageMap[selectedSociety.id] ??
+    Math.round((selectedSociety.usableStorageCapacityLiters || 320000) * 0.78);
 
   const setCurrentRole = (role: UserRole) => {
     setCurrentRoleState(role);
@@ -270,12 +282,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setSelectedSociety = (society: Society) => {
     setSelectedSocietyState(society);
-    const scaledStorage = Math.round((society.usableStorageCapacityLiters || 320000) * 0.78);
-    setCurrentStorageLiters(scaledStorage);
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}society`, JSON.stringify(society));
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, scaledStorage.toString());
+      const currentLevel =
+        societyStorageMap[society.id] ?? Math.round((society.usableStorageCapacityLiters || 320000) * 0.78);
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, currentLevel.toString());
     } catch {}
+  };
+
+  const increaseSocietyStorage = (societyId: string, addedLiters: number) => {
+    const targetSoc = mockSocieties.find((s) => s.id === societyId) || selectedSociety;
+    const capacity = targetSoc.usableStorageCapacityLiters || 500000;
+    setSocietyStorageMap((prev) => {
+      const current = prev[societyId] ?? Math.round(capacity * 0.78);
+      const updatedVal = Math.min(capacity, Math.round(current + addedLiters));
+      const updated = { ...prev, [societyId]: updatedVal };
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}society_storage_map`, JSON.stringify(updated));
+        if (societyId === selectedSociety.id) {
+          localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, updatedVal.toString());
+        }
+      } catch {}
+      updateStorageLevelInFirestore(societyId, updatedVal);
+      return updated;
+    });
+  };
+
+  const setCurrentStorageLiters = (valOrFn: number | ((prev: number) => number)) => {
+    const capacity = selectedSociety.usableStorageCapacityLiters || 500000;
+    setSocietyStorageMap((prev) => {
+      const current = prev[selectedSociety.id] ?? Math.round(capacity * 0.78);
+      const nextVal = typeof valOrFn === "function" ? valOrFn(current) : valOrFn;
+      const clamped = Math.max(0, Math.min(capacity, Math.round(nextVal)));
+      const updated = { ...prev, [selectedSociety.id]: clamped };
+      try {
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}society_storage_map`, JSON.stringify(updated));
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, clamped.toString());
+      } catch {}
+      updateStorageLevelInFirestore(selectedSociety.id, clamped);
+      return updated;
+    });
   };
 
   // Core entities — pre-populated with Nagpur townships data
@@ -337,13 +383,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (savedAlerts) setAlerts(mergeEntityArrays(combinedAlerts, safeJsonParse(savedAlerts, [])));
       else setAlerts(combinedAlerts);
 
-      const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
-      if (savedStorage) {
-        const parsedNum = Number(savedStorage);
-        if (!isNaN(parsedNum) && parsedNum > 0) setCurrentStorageLiters(parsedNum);
-        else setCurrentStorageLiters(Math.round((activeSoc.usableStorageCapacityLiters || 320000) * 0.78));
+      const savedStorageMap = localStorage.getItem(`${STORAGE_KEY_PREFIX}society_storage_map`);
+      if (savedStorageMap) {
+        const parsedMap = safeJsonParse<Record<string, number> | null>(savedStorageMap, null);
+        if (parsedMap && typeof parsedMap === "object" && !Array.isArray(parsedMap)) {
+          setSocietyStorageMap((prev) => ({ ...prev, ...parsedMap }));
+        }
       } else {
-        setCurrentStorageLiters(Math.round((activeSoc.usableStorageCapacityLiters || 320000) * 0.78));
+        const savedStorage = localStorage.getItem(`${STORAGE_KEY_PREFIX}storage`);
+        if (savedStorage) {
+          const parsedNum = Number(savedStorage);
+          if (!isNaN(parsedNum) && parsedNum > 0) {
+            setSocietyStorageMap((prev) => ({ ...prev, [activeSoc.id]: parsedNum }));
+          }
+        }
       }
 
       const savedEmergency = localStorage.getItem(`${STORAGE_KEY_PREFIX}emergency`);
@@ -581,20 +634,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return updated;
     });
 
-    // Dynamically increase stored water
+    // Dynamically increase stored water for target society
     const addedLiters = Number(newEntry.quantityLiters) || 0;
-    setCurrentStorageLiters((prev) => {
-      const nextVal = Math.min(240000, prev + addedLiters);
-      try {
-        localStorage.setItem(`${STORAGE_KEY_PREFIX}storage`, String(nextVal));
-      } catch {}
-      updateStorageLevelInFirestore(selectedSociety.id, nextVal);
-      return nextVal;
-    });
+    const targetSocietyId = newEntry.societyId || selectedSociety.id;
+    increaseSocietyStorage(targetSocietyId, addedLiters);
 
     // Automatic Notification Alert
     triggerAlert({
-      societyId: selectedSociety.id,
+      societyId: targetSocietyId,
       title: `Water Intake Logged: +${newEntry.quantityLiters.toLocaleString()} L`,
       message: `${newEntry.source.toUpperCase()} supply recorded into ${newEntry.storageTankName} by ${newEntry.submittedBy}. Sump storage updated.`,
       severity: newEntry.shortageStatus === "low" || newEntry.shortageStatus === "critical" ? "warning" : "info",
@@ -623,7 +670,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     triggerAlert({
-      societyId: selectedSociety.id,
+      societyId: newEntry.societyId || selectedSociety.id,
       title: `Tanker Scheduled: ${newEntry.vendorName}`,
       message: `${newEntry.plannedQuantityLiters.toLocaleString()} L planned for arrival during ${newEntry.scheduledTimeWindow} (${newEntry.tankerNumber}).`,
       severity: "info",
@@ -639,6 +686,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const confirmTankerArrival = (id: string, actualLiters: number, notes?: string) => {
     let vendorName = "Private Tanker";
     let tankerNum = "KA-01";
+    let targetSocietyId = selectedSociety.id;
     let confirmedTanker: TankerSchedule | null = null;
 
     setTankerSchedules((prev) => {
@@ -646,6 +694,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (item.id === id) {
           vendorName = item.vendorName;
           tankerNum = item.tankerNumber;
+          if (item.societyId) targetSocietyId = item.societyId;
           confirmedTanker = {
             ...item,
             actualQuantityLiters: actualLiters,
@@ -668,9 +717,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveTankerScheduleToFirestore(confirmedTanker);
     }
 
-    // Also automatically log into Daily Water Availability!
+    // Also automatically log into Daily Water Availability for that specific society!
     addAvailabilityLog({
-      societyId: selectedSociety.id,
+      societyId: targetSocietyId,
       date: new Date().toISOString().split("T")[0],
       time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
       source: "tanker",
@@ -1147,17 +1196,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.clear();
     } catch {}
-    setAvailabilityLogs(mockAvailabilityLogs);
-    setTankerSchedules(mockTankerSchedules);
-    setBorewellPoints(mockBorewellPoints);
+    setSocietyStorageMap(buildDefaultSocietyStorage());
+    setAvailabilityLogs(combinedAvailabilityLogs);
+    setTankerSchedules(combinedTankerSchedules);
+    setBorewellPoints(combinedBorewells);
     setGroundwaterReadings(mockGroundwaterReadings);
-    setRwhUnits(mockRwhUnits);
+    setRwhUnits(combinedRwhUnits);
     setMaintenanceLogs(mockMaintenanceLogs);
-    setLeakageReports(mockLeakageReports);
-    setWaterSavingLogs(mockWaterSavingLogs);
-    setAlerts(mockAlerts);
+    setLeakageReports(combinedLeakageReports);
+    setWaterSavingLogs(combinedWaterSavingLogs);
+    setAlerts(combinedAlerts);
     setWaterQualityReadings(mockWaterQualityReadings);
-    setCurrentStorageLiters(142500);
     setCurrentRoleState("resident");
     syncToBackend("reset", {});
   };
@@ -1176,6 +1225,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toggleEmergencyCutoff,
         currentStorageLiters,
         setCurrentStorageLiters,
+        societyStorageMap,
+        increaseSocietyStorage,
         availabilityLogs,
         addAvailabilityLog,
         tankerSchedules,

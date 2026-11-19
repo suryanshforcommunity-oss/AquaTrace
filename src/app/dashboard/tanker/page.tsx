@@ -31,8 +31,14 @@ import {
 } from "lucide-react";
 
 export default function TankerPage() {
-  const { tankerSchedules, addTankerSchedule, confirmTankerArrival, selectedSociety, currentRole } =
-    useAppStore();
+  const {
+    tankerSchedules,
+    addTankerSchedule,
+    confirmTankerArrival,
+    selectedSociety,
+    currentRole,
+    currentStorageLiters,
+  } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<"active" | "history" | "vendors">("active");
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,6 +114,10 @@ export default function TankerPage() {
     (t) => t.status === "scheduled" || t.status === "en_route" || t.status === "arrived"
   );
 
+  const nextScheduledTanker = activeSchedules[0];
+  const quota = selectedSociety.dailyWaterQuotaLiters || 432000;
+  const bufferDaysRemaining = (currentStorageLiters / quota).toFixed(1);
+
   const completedHistory = currentSocietyTankers.filter((t) => {
     const matchesSearch =
       t.tankerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,7 +184,7 @@ export default function TankerPage() {
             </div>
           </div>
           <span className="text-[11px] font-medium text-primary shrink-0">
-            Next Sump Top-up: 18:00 IST Today
+            Next Sump Top-up: {nextScheduledTanker ? `${nextScheduledTanker.scheduledTimeWindow} Today` : "Scheduled on reserve trigger"}
           </span>
         </div>
       )}
@@ -207,9 +217,11 @@ export default function TankerPage() {
               Next Scheduled Delivery
             </span>
             <div className="mt-1 font-bold font-mono text-2xl text-primary">
-              18:00 IST
+              {nextScheduledTanker ? (nextScheduledTanker.scheduledTimeWindow.split("-")[0] || nextScheduledTanker.scheduledTimeWindow) : "18:00 IST"}
             </div>
-            <span className="text-[11px] text-emerald-600 font-medium">Cauvery Express · 6,000 L</span>
+            <span className="text-[11px] text-emerald-600 font-medium">
+              {nextScheduledTanker ? `${nextScheduledTanker.vendorName} · ${formatNumber(nextScheduledTanker.plannedQuantityLiters)} L` : "Scheduled on reserve trigger"}
+            </span>
           </div>
         )}
 
@@ -234,8 +246,8 @@ export default function TankerPage() {
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               Sump Buffer Status
             </span>
-            <div className="mt-1 font-bold font-mono text-2xl text-slate-900">4.4 Days</div>
-            <span className="text-[11px] text-slate-500">Normal domestic supply pressure</span>
+            <div className="mt-1 font-bold font-mono text-2xl text-slate-900">{bufferDaysRemaining} Days</div>
+            <span className="text-[11px] text-slate-500">Normal domestic supply pressure ({formatNumber(currentStorageLiters)} L)</span>
           </div>
         )}
       </div>

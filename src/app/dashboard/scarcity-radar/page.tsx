@@ -17,40 +17,41 @@ import {
 } from "lucide-react";
 
 export default function ScarcityRadarPage() {
-  const { allSocieties } = useAppStore();
+  const { allSocieties, societyStorageMap } = useAppStore();
 
   const [selectedMapSociety, setSelectedMapSociety] = useState(allSocieties[0]);
 
-  // Comparative regional dataset
-  const regionalSocieties = [
-    {
-      ...allSocieties[0],
-      currentReserveLiters: 142500,
-      daysRemaining: 4.2,
-      groundwaterDepthM: 18.4,
-      shortageSeverity: "medium",
-      priorityScore: 68,
-      tankerDemandRank: 2,
-    },
-    {
-      ...allSocieties[1],
-      currentReserveLiters: 48000,
-      daysRemaining: 1.8,
-      groundwaterDepthM: 22.8,
-      shortageSeverity: "critical",
-      priorityScore: 92,
-      tankerDemandRank: 1,
-    },
-    {
-      ...allSocieties[2],
-      currentReserveLiters: 110000,
-      daysRemaining: 5.6,
-      groundwaterDepthM: 16.2,
-      shortageSeverity: "low",
-      priorityScore: 35,
-      tankerDemandRank: 3,
-    },
-  ];
+  // Comparative regional dataset dynamically driven from all 7 Nagpur townships and societyStorageMap
+  const regionalSocieties = allSocieties.map((soc, idx) => {
+    const storage = societyStorageMap[soc.id] ?? Math.round((soc.usableStorageCapacityLiters || 400000) * 0.78);
+    const quota = soc.dailyWaterQuotaLiters || 300000;
+    const days = +(storage / quota).toFixed(1);
+    const capacityRatio = storage / (soc.usableStorageCapacityLiters || 500000);
+    const severity = capacityRatio < 0.4 || days < 2.2 ? "critical" : capacityRatio < 0.7 || days < 4.0 ? "medium" : "low";
+    const priorityScore = Math.min(99, Math.max(20, Math.round((1 - capacityRatio) * 85 + (days < 3 ? 15 : 0))));
+    const gwDepth = +(16.2 + (idx * 0.7) % 3.8).toFixed(1);
+
+    const positions = [
+      { top: "35%", left: "48%" }, // Bloomdale
+      { top: "25%", left: "70%" }, // Godrej Anandam
+      { top: "68%", left: "32%" }, // Vrindavan City
+      { top: "52%", left: "62%" }, // Shiv Kailasa
+      { top: "75%", left: "55%" }, // Sandesh City
+      { top: "30%", left: "28%" }, // Empress City
+      { top: "45%", left: "80%" }, // Greenwood
+    ];
+
+    return {
+      ...soc,
+      currentReserveLiters: storage,
+      daysRemaining: days,
+      groundwaterDepthM: gwDepth,
+      shortageSeverity: severity as "critical" | "medium" | "low",
+      priorityScore,
+      tankerDemandRank: idx + 1,
+      pos: positions[idx % positions.length],
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -80,9 +81,9 @@ export default function ScarcityRadarPage() {
             <div className="flex items-center justify-between border-b border-navy-700 pb-3">
               <div className="flex items-center gap-2">
                 <Radar className="h-5 w-5 text-aqua animate-spin" style={{ animationDuration: "12s" }} />
-                <h3 className="font-bold text-base text-white">East Bangalore Aquifer Grid Radar</h3>
+                <h3 className="font-bold text-base text-white">Nagpur Municipal Grid Aquifer Radar</h3>
               </div>
-              <span className="text-xs text-slate-400">Bellandur - Sarjapur Corridor</span>
+              <span className="text-xs text-slate-400">MIHAN - Wardha Rd - Central Nagpur Grid</span>
             </div>
 
             {/* Radar UI Canvas */}
@@ -102,13 +103,8 @@ export default function ScarcityRadarPage() {
                 <div
                   key={soc.id}
                   onClick={() => setSelectedMapSociety(soc)}
-                  className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition group ${
-                    soc.id === "soc_greenwood_01"
-                      ? "top-[40%] left-[55%]"
-                      : soc.id === "soc_palm_meadows"
-                      ? "top-[25%] left-[75%]"
-                      : "top-[70%] left-[30%]"
-                  }`}
+                  style={{ top: soc.pos.top, left: soc.pos.left }}
+                  className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition group"
                 >
                   <div className="relative flex items-center justify-center">
                     <span
@@ -133,7 +129,7 @@ export default function ScarcityRadarPage() {
 
                   <div className="absolute left-6 top-0 hidden group-hover:block whitespace-nowrap rounded-lg bg-navy-800 p-2 text-[11px] shadow-xl border border-navy-600 z-10">
                     <div className="font-bold text-white">{soc.name}</div>
-                    <div className="text-cyan-300">Days Left: {soc.daysRemaining}d</div>
+                    <div className="text-cyan-300">Reserves: {formatNumber(soc.currentReserveLiters)} L ({soc.daysRemaining}d)</div>
                     <div className="text-slate-400">GW Depth: {soc.groundwaterDepthM}m</div>
                   </div>
                 </div>
@@ -143,9 +139,9 @@ export default function ScarcityRadarPage() {
 
           <div className="flex items-center justify-between text-xs text-slate-400 border-t border-navy-700 pt-3">
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-rose-500" /> Critical Shortage (&lt;2d)
+              <span className="h-2 w-2 rounded-full bg-rose-500" /> Critical Shortage (&lt;2.2d)
               <span className="h-2 w-2 rounded-full bg-amber-500 ml-2" /> Moderate (2-4d)
-              <span className="h-2 w-2 rounded-full bg-emerald-500 ml-2" /> Secure (&gt;5d)
+              <span className="h-2 w-2 rounded-full bg-emerald-500 ml-2" /> Secure (&gt;4d)
             </span>
           </div>
         </div>
@@ -220,7 +216,7 @@ export default function ScarcityRadarPage() {
                       </span>
                       <button
                         onClick={() =>
-                          alert(`Municipal tanker convoy assigned to ${soc.name} via BWSSB dispatcher.`)
+                          alert(`Municipal tanker convoy assigned to ${soc.name} via NMC Water Department dispatcher.`)
                         }
                         className="font-bold text-primary hover:underline text-[11px]"
                       >

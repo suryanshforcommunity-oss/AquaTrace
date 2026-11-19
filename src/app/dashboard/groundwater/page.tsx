@@ -57,6 +57,13 @@ export default function GroundwaterPage() {
     ? borewellPoints.filter((b) => b.id.includes(selectedSociety.id))
     : borewellPoints;
 
+  // Auto-select valid borewell for society
+  React.useEffect(() => {
+    if (currentSocietyBorewells.length > 0 && !currentSocietyBorewells.some((b) => b.id === selectedBorewellId)) {
+      setSelectedBorewellId(currentSocietyBorewells[0].id);
+    }
+  }, [selectedSociety.id, currentSocietyBorewells]);
+
   const currentBorewell =
     currentSocietyBorewells.find((b) => b.id === selectedBorewellId) || currentSocietyBorewells[0];
 
@@ -64,16 +71,20 @@ export default function GroundwaterPage() {
     (r) => r.borewellId === selectedBorewellId
   );
 
-  // Formatted chart data
+  // Formatted chart data dynamically calculated from current borewell's swl, pwl and currentDepth
+  const curD = currentBorewell ? currentBorewell.currentDepthMeters : 18.4;
+  const swl = currentBorewell ? currentBorewell.swlMeters : 14.5;
+  const pwl = currentBorewell ? currentBorewell.pwlMeters : 22.5;
+
   const chartData = [
-    { date: "15 Oct", depth: 16.9, historicalAvg: 16.5, pwlDepth: 22.1 },
-    { date: "25 Oct", depth: 17.3, historicalAvg: 16.8, pwlDepth: 22.6 },
-    { date: "05 Nov", depth: 17.65, historicalAvg: 17.1, pwlDepth: 23.2 },
-    { date: "10 Nov", depth: 17.8, historicalAvg: 17.3, pwlDepth: 23.5 },
-    { date: "12 Nov", depth: 17.92, historicalAvg: 17.4, pwlDepth: 23.6 },
-    { date: "14 Nov", depth: 18.15, historicalAvg: 17.5, pwlDepth: 23.9 },
-    { date: "16 Nov", depth: 18.35, historicalAvg: 17.7, pwlDepth: 24.0 },
-    { date: "17 Nov", depth: currentBorewell.currentDepthMeters, historicalAvg: 17.8, pwlDepth: currentBorewell.pwlMeters },
+    { date: "15 Oct", depth: +(curD - 1.5).toFixed(2), historicalAvg: +(swl + 1.2).toFixed(2), pwlDepth: pwl },
+    { date: "25 Oct", depth: +(curD - 1.1).toFixed(2), historicalAvg: +(swl + 1.5).toFixed(2), pwlDepth: pwl },
+    { date: "05 Nov", depth: +(curD - 0.75).toFixed(2), historicalAvg: +(swl + 1.8).toFixed(2), pwlDepth: pwl },
+    { date: "10 Nov", depth: +(curD - 0.6).toFixed(2), historicalAvg: +(swl + 2.0).toFixed(2), pwlDepth: pwl },
+    { date: "12 Nov", depth: +(curD - 0.48).toFixed(2), historicalAvg: +(swl + 2.1).toFixed(2), pwlDepth: pwl },
+    { date: "14 Nov", depth: +(curD - 0.25).toFixed(2), historicalAvg: +(swl + 2.2).toFixed(2), pwlDepth: pwl },
+    { date: "16 Nov", depth: +(curD - 0.05).toFixed(2), historicalAvg: +(swl + 2.4).toFixed(2), pwlDepth: pwl },
+    { date: "17 Nov", depth: curD, historicalAvg: +(swl + 2.5).toFixed(2), pwlDepth: pwl },
   ];
 
   const handleManualSubmit = (e: React.FormEvent) => {

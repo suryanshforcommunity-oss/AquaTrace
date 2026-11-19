@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 export default function WaterAvailabilityPage() {
-  const { availabilityLogs, addAvailabilityLog, selectedSociety, currentRole } = useAppStore();
+  const { availabilityLogs, addAvailabilityLog, selectedSociety, currentRole, currentStorageLiters } = useAppStore();
 
   const [selectedSourceFilter, setSelectedSourceFilter] = useState<string>("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -50,6 +50,20 @@ export default function WaterAvailabilityPage() {
   const totalLoggedToday = currentSocietyLogs
     .filter((l) => l.date === todayStr || l.date === currentSocietyLogs[0]?.date)
     .reduce((acc, curr) => acc + (Number(curr.quantityLiters) || 0), 0);
+
+  const municipalTotal = currentSocietyLogs
+    .filter((l) => l.source === "municipal")
+    .reduce((s, l) => s + (Number(l.quantityLiters) || 0), 0);
+  const borewellTotal = currentSocietyLogs
+    .filter((l) => l.source === "borewell")
+    .reduce((s, l) => s + (Number(l.quantityLiters) || 0), 0);
+  const tankerTotal = currentSocietyLogs
+    .filter((l) => l.source === "tanker")
+    .reduce((s, l) => s + (Number(l.quantityLiters) || 0), 0);
+  const storageCapPercent = Math.min(
+    100,
+    Math.round((currentStorageLiters / (selectedSociety.usableStorageCapacityLiters || 500000)) * 100)
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +127,7 @@ export default function WaterAvailabilityPage() {
           </div>
           <p className="mt-1 text-xs text-slate-500 max-w-2xl">
             {currentRole === "resident"
-              ? "Transparent log of daily municipal supply, borewell cycles, and verified tanker replenishment for Greenwood Heights."
+              ? `Transparent log of daily municipal supply, borewell cycles, and verified tanker replenishment for ${selectedSociety.name}.`
               : "Record and audit intake from municipal feeder lines, registered tankers, and deep borewells into society storage sumps."}
           </p>
         </div>
@@ -155,12 +169,12 @@ export default function WaterAvailabilityPage() {
             <div>
               <span className="font-semibold text-slate-900">Resident Information:</span>{" "}
               <span>
-                Daily water availability logs are managed by the society pump operator and cross-verified by electromagnetic flowmeters. Residents can monitor inflow timing and report pressure drops.
+                Daily water availability logs are managed by {selectedSociety.name} estate team and verified by ultrasonic and flow sensors. Residents can monitor intake and track reserve volumes.
               </span>
             </div>
           </div>
           <span className="text-[11px] font-semibold text-emerald-700 shrink-0">
-            Current Sump Status: 78% Full (Supply Normal)
+            Current Sump Status: {formatNumber(currentStorageLiters)} L ({storageCapPercent}% Full)
           </span>
         </div>
       )}
@@ -174,31 +188,31 @@ export default function WaterAvailabilityPage() {
           <div className="mt-1 font-bold font-mono text-2xl text-slate-900">
             {formatNumber(totalLoggedToday)} L
           </div>
-          <span className="text-[11px] text-emerald-700 font-medium">3 Recorded batches</span>
+          <span className="text-[11px] text-emerald-700 font-medium">{currentSocietyLogs.length} Recorded batches</span>
         </div>
 
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Municipal Grid Flow
           </span>
-          <div className="mt-1 font-bold font-mono text-2xl text-primary">65,000 L</div>
-          <span className="text-[11px] text-slate-500">Duration: 3 hours steady flow</span>
+          <div className="mt-1 font-bold font-mono text-2xl text-primary">{formatNumber(municipalTotal)} L</div>
+          <span className="text-[11px] text-slate-500">NMC Feeder Line Deliveries</span>
         </div>
 
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Borewell Pumping Total
           </span>
-          <div className="mt-1 font-bold font-mono text-2xl text-slate-900">32,000 L</div>
-          <span className="text-[11px] text-slate-500">Pumping cycle: 240 mins</span>
+          <div className="mt-1 font-bold font-mono text-2xl text-slate-900">{formatNumber(borewellTotal)} L</div>
+          <span className="text-[11px] text-slate-500">Active Society Borewells</span>
         </div>
 
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
             Tanker Inflow (Gate Verified)
           </span>
-          <div className="mt-1 font-bold font-mono text-2xl text-orange">12,000 L</div>
-          <span className="text-[11px] text-slate-500">Cauvery Express #8821</span>
+          <div className="mt-1 font-bold font-mono text-2xl text-orange">{formatNumber(tankerTotal)} L</div>
+          <span className="text-[11px] text-slate-500">Flowmeter Verified Bulk Inflow</span>
         </div>
       </div>
 

@@ -28,12 +28,27 @@ import {
 } from "recharts";
 
 export default function WaterRemainingPage() {
-  const { selectedSociety, currentRole } = useAppStore();
+  const { selectedSociety, currentRole, currentStorageLiters, tankerSchedules } = useAppStore();
 
-  const [activeStorageLiters, setActiveStorageLiters] = useState<number>(142500);
-  const [dailyBurnLiters, setDailyBurnLiters] = useState<number>(34000);
-  const [incomingTankerLiters, setIncomingTankerLiters] = useState<number>(6000);
+  const societyTankers = tankerSchedules.filter((t) => t.societyId === selectedSociety.id);
+  const scheduledTankerLiters = societyTankers
+    .filter((t) => t.status === "scheduled" || t.status === "en_route")
+    .reduce((sum, t) => sum + (t.plannedQuantityLiters || 0), 0);
+
+  const [activeStorageLiters, setActiveStorageLiters] = useState<number>(currentStorageLiters);
+  const [dailyBurnLiters, setDailyBurnLiters] = useState<number>(selectedSociety.dailyWaterQuotaLiters || 432000);
+  const [incomingTankerLiters, setIncomingTankerLiters] = useState<number>(scheduledTankerLiters > 0 ? scheduledTankerLiters : 12000);
   const [demandMultiplier, setDemandMultiplier] = useState<number>(1.0);
+
+  // Keep state tightly synchronized whenever society changes or storage updates
+  React.useEffect(() => {
+    setActiveStorageLiters(currentStorageLiters);
+    setDailyBurnLiters(selectedSociety.dailyWaterQuotaLiters || 432000);
+    const inc = societyTankers
+      .filter((t) => t.status === "scheduled" || t.status === "en_route")
+      .reduce((sum, t) => sum + (t.plannedQuantityLiters || 0), 0);
+    setIncomingTankerLiters(inc > 0 ? inc : 12000);
+  }, [selectedSociety.id, currentStorageLiters, tankerSchedules]);
 
   const calcResult = calculateDaysRemaining({
     usableStoredWaterLiters: activeStorageLiters,
@@ -89,9 +104,9 @@ export default function WaterRemainingPage() {
           <div className="flex items-start gap-2.5">
             <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-slate-900">Apartment Water Runway (Block A - 402):</span>{" "}
+              <span className="font-semibold text-slate-900">Apartment Water Runway ({selectedSociety.name}):</span>{" "}
               <span>
-                Our society holds <strong>4.4 Days</strong> of uninterrupted water buffer. Recommended daily household consumption ceiling is <strong>350 Litres</strong> to prevent early emergency rationing.
+                Our society holds <strong>{calcResult.formattedDays}</strong> of uninterrupted water buffer ({formatNumber(activeStorageLiters)} L). Recommended daily household consumption ceiling is <strong>{Math.round((selectedSociety.dailyWaterQuotaLiters || 300000) / (selectedSociety.totalApartments || 600))} Litres</strong> to prevent early emergency rationing.
               </span>
             </div>
           </div>
